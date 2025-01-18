@@ -31,6 +31,7 @@
 
 html {
   min-width: 360px;
+  font-family: "NEXONLv1GothicOTFRegular", sans-serif;
 }
 
 .prose .anchor {
@@ -147,4 +148,61 @@ table {
 
 .title {
   text-wrap: balance;
+}
+
+.code-container * {
+  font-family: "D2Coding" !important;
+  @apply !m-0;
+}
+
+/* Blog post hover effects */
+.blog-post-link {
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+.blog-post-link:hover {
+  transform: translateX(4px);
+}
+
+.blog-post-link::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 1px;
+  bottom: -2px;
+  left: 0;
+  background-color: currentColor;
+  transition: width 0.3s ease-in-out;
+}
+
+.blog-post-link:hover::after {
+  width: 100%;
+}
+
+@font-face {
+  font-family: "NEXONLv1GothicOTFRegular";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@2.1/NEXON Lv1 Gothic OTF Light.woff")
+    format("woff");
+}
+
+@font-face {
+  font-family: "NEXONLv1GothicOTFBold";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@2.1/NEXON Lv1 Gothic OTF Bold.woff")
+    format("woff");
+}
+
+@font-face {
+  font-family: "D2Coding";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("https://cdn.jsdelivr.net/gh/everydayminder/assets/subset-D2Codingligature.woff")
+    format("woff");
 }
