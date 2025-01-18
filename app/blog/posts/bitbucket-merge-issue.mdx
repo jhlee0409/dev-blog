@@ -1,0 +1,28 @@
+---
+title: "Bitbucket Merge Issue"
+publishedAt: "2025-01-01"
+summary: "Bitbucket Merge Issue"
+---
+
+현재 외주로 맡은 프로젝트를 리액트로 작업하고 있는 소스들을 정적 웹 호스팅을 위해 AWS S3 소스들을 빌드해서 올려놓은 상태이며 AWS의 CodeCommit 과 CodeBuild를 사용 중이다.
+
+원래는 CodeBuild 내에서 프로젝트를 생성할때 소스들을 타깃 저장소와 연동시키려했지만 지금 쓰고 있는 gitlab은 아쉽게도 지원하지 않아서 CodeCommit을 사용해 소스들을 올려놓고 있다.
+
+제대로 활용을 못한 탓인지 CodeCommit에 소스들을 매번 올리는게 번거롭다고 느껴져서 깃 저장소를 bitbucket으로 옮기기로했다.
+
+git remote 관련 명령어들을 사용해 현재 로컬에 있는 소스를 bitbucket repo에 remote 시켜놓은 상태이고 bitbucket에 작업 브랜치를 생성해 소스들을 올려놓은 상태이다.
+
+Codebuild를 이용해 bitbucket에 master의 소스들을 build 하기로 했으며 push 할때마다 자동으로 빌드가 되도록 하는 옵션도 설정했다.
+
+이 작업을 수행하기 위해서는 현재 작업 브랜치를 master로 푸시 해야하는데 (현 프로세스는 각자 작업하고 있는 브랜치 → dev 브랜치로 merge → 로컬에서 테스트할 때 이슈가 없을 시 → master 브랜치로 merge) 타 깃 저장소에 있는 소스들은 bitbucket의 master 브랜치에서 파생된 브랜치들이 아니다 보니 "연관성이 없다."(현재는 해결된 상태라 캡쳐본이 없다. 다음에 또 이러한 경우가 있으면 오류메세지를 캡쳐해놔야겠다.) 라는 오류와 함께 푸시가 안되는 상황이 벌어졌다.
+
+master에서 다른 브랜치를 생성해서 소스들을 로컬에서 옮긴 후 커밋 푸시할까 했지만 개발자?답지 않다고 생각해서 이 이상 더 일을 복잡하게 하지않게 하려 구글링을 열심히 했다.
+
+그 결과 master 브랜치에서 아래 pull 명령어에 뒤에 옵션으로 명령어를 더 붙여주면 해결이 된다.
+
+직역하면 "관련없는 히스토리도 허가한다." 라는 명령어 이다
+
+```bash
+# current branch : master
+$git pull origin <작업한 브랜치> --allow-unrelated-histories
+```
