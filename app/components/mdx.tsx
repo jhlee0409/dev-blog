@@ -50,12 +50,9 @@ function RoundedImage(props) {
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import darcula from "react-syntax-highlighter/dist/cjs/styles/prism/one-dark";
 
-type CodeBlockProps = {
-  children: string;
-} & { [x: string]: any };
-
-const CodeBlock = ({ children, ...props }: CodeBlockProps) => {
+function Code({ children, ...props }) {
   const language = props.className.replace(/language-/, "");
+
   return (
     <div className="rounded-md overflow-hidden">
       <div className="flex justify-between bg-[rgb(40,_44,_52)] px-4 pt-3">
@@ -66,7 +63,7 @@ const CodeBlock = ({ children, ...props }: CodeBlockProps) => {
         </div>
         <span className="text-sm text-gray-500">{language}</span>
       </div>
-      <div className="[&_*]:font-d2coding [&_*]:!m-0">
+      <div className="code-container">
         <SyntaxHighlighter
           PreTag="pre"
           language={language}
@@ -79,10 +76,6 @@ const CodeBlock = ({ children, ...props }: CodeBlockProps) => {
       </div>
     </div>
   );
-};
-
-function Code({ children, ...props }) {
-  return <CodeBlock {...props}>{children}</CodeBlock>;
 }
 
 function slugify(str) {
