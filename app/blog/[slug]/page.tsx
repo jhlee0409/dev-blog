@@ -108,11 +108,13 @@ export default function Blog({ params }) {
               </span>
             ))}
           </div>
-          <img
-            className="w-full"
-            src={post.metadata.image}
-            alt={post.metadata.title}
-          />
+          {post.metadata.image && (
+            <img
+              className="w-full"
+              src={post.metadata.image}
+              alt={post.metadata.title}
+            />
+          )}
         </div>
       </div>
       <article className="prose">

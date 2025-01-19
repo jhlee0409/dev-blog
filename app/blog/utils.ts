@@ -21,10 +21,12 @@ function parseFrontmatter(fileContent: string) {
     let [key, ...valueArr] = line.split(": ");
     let value = valueArr.join(": ").trim();
     value = value.replace(/^['"](.*)['"]$/, "$1"); // Remove quotes
+
     const trimmedKey = key.trim() as keyof Metadata;
     if (trimmedKey === "tags") {
-      const parsedTags = JSON.parse(value);
-      metadata[trimmedKey] = parsedTags;
+      (metadata[trimmedKey] as string[]) = value
+        ? value.split(",").map((tag) => tag.trim())
+        : [];
     } else {
       metadata[trimmedKey] = value;
     }
