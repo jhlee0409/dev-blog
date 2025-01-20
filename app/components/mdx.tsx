@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import React from "react";
+import { ImageGallery } from "./ImageGallery";
 
 function Table({ data }) {
   let headers = data.headers.map((header, index) => (
@@ -44,14 +45,26 @@ function CustomLink(props) {
 }
 
 function RoundedImage(props) {
-  return <Image alt={props.alt} className="rounded-lg" {...props} />;
+  return (
+    <div className="w-full">
+      <Image
+        alt={props.alt}
+        className="rounded-lg w-full h-auto"
+        {...props}
+        width={0}
+        height={0}
+        sizes="100vw"
+        style={{ width: "100%", height: "auto" }}
+      />
+    </div>
+  );
 }
 
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import darcula from "react-syntax-highlighter/dist/cjs/styles/prism/one-dark";
 
 function Code({ children, ...props }) {
-  const language = props.className.replace(/language-/, "");
+  const language = props.className?.replace(/language-/, "");
 
   return (
     <div className="rounded-md overflow-hidden">
@@ -120,6 +133,8 @@ let components = {
   h6: createHeading(6),
   Image: RoundedImage,
   a: CustomLink,
+  ImageGallery: ImageGallery,
+  pre: Code,
   code: Code,
   Table,
 };

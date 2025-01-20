@@ -104,10 +104,6 @@ html {
   @apply text-lg font-medium tracking-tight mt-6 mb-2;
 }
 
-.prose strong {
-  @apply font-medium;
-}
-
 .prose ul {
   @apply list-disc pl-6;
 }
