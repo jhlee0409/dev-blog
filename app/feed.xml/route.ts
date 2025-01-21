@@ -25,7 +25,10 @@ export async function GET() {
 
   return new Response(feed.xml({ indent: true }), {
     headers: {
-      "Content-Type": "application/xml",
+      "Content-Type": "application/xml; charset=utf-8",
+      "Cache-Control": "public, max-age=3600",
+      "Access-Control-Allow-Origin": "*",
+      "x-content-type-options": "nosniff",
     },
   });
 }
