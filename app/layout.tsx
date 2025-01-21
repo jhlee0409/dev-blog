@@ -1,4 +1,5 @@
 import "./global.css";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
@@ -61,6 +62,7 @@ export default function RootLayout({
           <SpeedInsights />
         </main>
       </body>
+      <GoogleAnalytics gaId="G-SCRW74NQ0X" />
     </html>
   );
 }
