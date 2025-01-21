@@ -1,0 +1,64 @@
+---
+title: "Javascript export 파헤치기"
+publishedAt: "2022-11-16"
+summary: "Javascript export 파헤치기"
+tags: "javascript, export"
+---
+
+## 서론
+
+- `export` 할 모듈은 또한 무조건 `엄격 모드` 이다.
+- HTML 안에 작성한 스크립트에는 `import` 사용이 불가하다.
+
+## 사용법
+
+### 1. 기본 내보내기
+
+한 모듈에 하나만 내보내기 가능하다.
+
+```js
+// 선언식
+export default function() {};
+export default function*() {};
+export default class {};
+
+// 표현식
+export default function name() {};
+export default function* name() {};
+export default class name {};
+```
+
+import할 때는 아래와 같이 사용한다.
+
+```js
+// 어떤식으로 네이밍 하던 상관없음, 하나만 export니까!
+import anyName from "export-default-module.js";
+
+// if function
+anyName();
+// if const, let, var
+anyName;
+```
+
+### 2. 하나 or 여러 개 내보내기
+
+```js
+// 하나씩
+export const name1 ...;
+export let name2... ;
+export var name3...;
+export function name4() {};
+export class name5{}
+
+// 여려개
+export {name1, name2, name3, name4};
+
+// with alias
+export { name1 as aliasName, ...};
+```
+
+## 참조
+
+- [export — JavaScript — MDN Web Docs — Mozilla](https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Statements/export)
+
+**피드백은 언제나 환영입니다.**

@@ -1,0 +1,50 @@
+---
+title: "Date 이슈 in Safari"
+publishedAt: "2023-11-27"
+summary: "Date 이슈 in Safari"
+tags: "javascript, break issue, safari, date"
+---
+
+만약 서버에서 아래와 같은 Date 포맷을 내려준다고 가정을 해보자
+
+```javascript
+const date = "2023-11-27 01:51:11 +0000";
+```
+
+그럴 때 위와 같은 날짜 포맷은 `new Date` 생성자를 통해 만들면 `safari`에서 인식을 못하는 이슈를 겪었다.
+
+`replace` 메소드를 통해 `-` 스트링을 `/` 로 바꿔서 `format`하면 정상 작동하는 것을 확인할 수 있다.
+
+```javascript
+const cutDate = date.replace(/-/g, "/"); // "2023/11/27 01:51:11 +0000"
+```
+
+`-`를 인식을 못하는 건 아니지만 다양한 날짜의 형식에 따라 인식 여부가 나뉘는 것으로 추측이 된다.
+
+여러 Date 형식을 종합해보면 아래와 같다
+
+```javascript
+// safari에서 인식이 가능한가?
+
+new Date("2023-02-02 00:00:00 +0900"); // no
+
+new Date("2023-02-02 00:00:00+0900"); // yes
+
+new Date("2023-02-02T00:00:00 +0900"); // no
+
+new Date("2023-02-02T00:00:00+0900"); // yes
+
+new Date("2023/02/02 00:00:00 +0900"); // yes
+
+new Date("2023/02/02 00:00:00+0900"); // yes
+
+new Date("2023/02/02T00:00:00+0900"); // no 크롬도 no, 옳지않은 형식
+
+new Date("2023/02/02T00:00:00 +0900"); // no 크롬도 no, 옳지않은 형식
+```
+
+## 참조
+
+- https://2dowon.github.io/docs/javascript/ios-new-date/
+
+피드백은 언제나 환영입니다.

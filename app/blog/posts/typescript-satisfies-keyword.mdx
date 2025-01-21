@@ -1,0 +1,178 @@
+---
+title: "[Typescript] satisfies 키워드"
+publishedAt: "2024-04-27"
+summary: "[Typescript] satisfies 키워드"
+tags: "typescript, satisfies"
+---
+
+## 서론
+
+typescript 4.9에 추가된 `satisfies` 키워드에 대해 알아보자.
+
+form data에 담기는 값들의 경우 마지막에 submit 을 위해 담긴 값들과 초기값은 서로 다를 수 있다.
+
+그럴떄 종종 쓰던 키워드가 `as` 키워드이다.
+
+```tsx
+type FormData = {
+  name: string;
+  age: number | string; // 입력값은 string으로 들어올 수 있음
+};
+
+const initialData = {
+  name: "",
+  age: "", // string으로 시작
+} as FormData; // as를 사용한 타입 단언
+```
+
+`as` 키워드는 assertion(단언)으로 이 객체 or 값은 이런 타입을 가질꺼야 라며 예측(추측에 의한 확)을 위한 키워드이다.
+
+하지만 `as` 키워드는 타입을 정확하게 추론하지 못한다. 아래의 코드를 보자.
+
+```tsx
+type Colors = "red" | "green" | "blue";
+
+type RGB = [red: number, green: number, blue: number];
+
+const palette = {
+  red: [255, 0, 0],
+  green: "#00ff00",
+  blue: [0, 0, 255],
+} as Record<Colors, string | RGB>;
+
+const redComponent = palette.red.at(0);
+```
+
+아래와 같은 상황에서 우리는 `red`는 `string` 이며 `blue`의 경우 `number`로 이루어진 `tuple`이라 생각한다. 하지만 `as` 키워드는 타입을 정확하게 추론해내지 못한다.
+
+`as` 가 추론한 타입이다.
+
+```tsx
+// as 키워드가 추론한 타입
+const palette: Record<Colors, string | RGB>;
+```
+
+이렇게 되면 특정 타입에서만 사용 가능한 메서드를 호출 할 수가 없다. `palette.red`가 우리는 tuple 형태인 것을 알지만 typescript는 `string | RGB` 유니온 타입으로 추론한다. 그렇기에 `string` 타입에서는 사용할 수 없는 `at(0)`에서 에러가 발생한다.
+
+```tsx
+const redComponent = palette.red.at(0);
+```
+
+```
+- Property 'at' does not exist on type 'string | RGB'. Property 'at' does not exist on type 'string'.
+```
+
+이러한 문제는 satisfies 키워드를 쓰면 우리가 원하던 타입으로 추론이 가능하다.
+
+```tsx
+type Colors = "red" | "green" | "blue";
+
+type RGB = [red: number, green: number, blue: number];
+
+const palette = {
+  red: [255, 0, 0],
+  green: "#00ff00",
+  blue: [0, 0, 255],
+} satisfies Record<Colors, string | RGB>;
+
+// success!
+const redComponent = palette.red.at(0); // (property) red: [number, number, number]
+const greenNormalized = palette.green.toUpperCase(); // (property) green: string
+```
+
+여기서 사용된 `at` 메소드는 `ES2022`에 추가된 Array의 메소드로 하위 버전의 경우에는 타입 에러를 반환한다.
+
+```
+- Property 'at' does not exist on type '[number, number, number]'.
+```
+
+또한 satisfies 를 사용하면 해당 객체에 정의된 키값 이외에 더 이상 키 값이 추가되는 것을 막을 수 있다.
+
+`as` 를 사용할 경우 `platypus` 가 추가되어도 타입 에러를 반환하지 않는다.
+
+```tsx
+type Colors = "red" | "green" | "blue";
+const favoriteColors = {
+  red: "yes",
+  green: false,
+  blue: "kinda",
+  platypus: false, // pass
+} as Record<Colors, unknown>;
+```
+
+`satisfies`를 사용하면 `Colors` 타입 이외의 key 값이 들어올 경우 타입 에러를 반환한다.
+
+```tsx
+type Colors = "red" | "green" | "blue";
+const favoriteColors = {
+  red: "yes",
+  green: false,
+  blue: "kinda",
+  platypus: false, // error
+} satisfies Record<Colors, unknown>;
+```
+
+```
+- Object literal may only specify known properties, and '"platypus"' does not exist in type 'Record<Colors, unknown>'.
+```
+
+## satisfies의 장점
+
+### 1. 타입 안전성
+
+`as`는 타입 체크를 우회하지만, `satisfies`는 실제 값이 타입과 호환되는지 검사한다. 이는 런타임에서 발생할 수 있는 타입 관련 오류를 컴파일 타임에 잡아낼 수 있다는 장점이 있다.
+
+### 2. 타입 추론 유지
+
+구체적인 타입 정보를 유지하면서도 타입 제약을 적용할 수 있다. 이는 특히 복잡한 객체를 다룰 때 유용하다.
+
+```tsx
+// 환경 설정 객체 검증 예시
+type Config = {
+  api: {
+    endpoint: string;
+    timeout: number;
+  };
+  features: Record<string, boolean>;
+};
+
+const config = {
+  api: {
+    endpoint: "https://api.example.com",
+    timeout: 5000,
+  },
+  features: {
+    darkMode: true,
+    beta: false,
+  },
+} satisfies Config;
+
+// 타입 추론이 유지되어 자동완성 가능
+config.features.darkMode; // boolean으로 정확히 추론
+```
+
+### 3. as const와의 차이점
+
+`as const`는 객체의 모든 속성을 읽기 전용 리터럴 타입으로 변환한다. 반면 `satisfies`는 타입 제약과 타입 추론을 동시에 가능하게 해준다.
+
+```tsx
+// as const는 값을 리터럴 타입으로 좁힘
+const palette1 = {
+  primary: "#ff0000",
+  secondary: "#00ff00",
+} as const;
+// type: { readonly primary: "#ff0000"; readonly secondary: "#00ff00"; }
+
+// satisfies는 타입 제약과 추론을 동시에
+const palette2 = {
+  primary: "#ff0000",
+  secondary: "#00ff00",
+} satisfies Record<string, string>;
+// type: { primary: string; secondary: string; }
+```
+
+### 참고
+
+- [TypeScript 4.9](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-9.html#satisfies)
+
+**피드백은 언제나 환영입니다.**

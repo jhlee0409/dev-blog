@@ -1,0 +1,87 @@
+---
+title: "AbortController 파헤치기"
+publishedAt: "2022-11-19"
+summary: "AbortController 파헤치기"
+tags: "javascript, abort controller"
+---
+
+## AbortController란?
+
+- 하나 이상의 웹 요청을 취소할 수 있게 해준다.
+- `new` 키워드를 이용해 `AbortController` 객체 인스턴스를 생성한다.
+
+## AbortController 구성요소
+
+- `AbortController.signal` : DOM 요청과 통신하기 위한 객체
+- `AbortController.abort()`: DOM 요청이 완료되기 전에 취소한다.
+- 호출시 `catch`문으로 바로 넘어간다
+- `abort()` 통해 취소하면 `network status`에 상태코드가 아닌 `canceled`라고 뜬다.
+- 이벤트리스너를 통해서 `abort()` 호출 가능
+
+### `abort()` 호출 시점에 따른 차이
+
+1. **API 요청 전**
+
+- occur error : `AbortError: Failed to execute 'fetch' on 'Window': The user aborted a request`.
+
+**2. API 요청 성공 시점**
+
+- `abort()` 메소드 무시하고 정상 진행
+
+**3. API 요청 끝난 후**
+
+- occur error : `AbortError: The user aborted a request.`
+
+**4.** `**finally()**` **메소드 호출 시점**
+
+- `abort()` 메소드 무시하고 정상 진행
+
+## 사용법
+
+- API 호출 시 `option`에 `signal`객체 추가
+- API 요청 끝난 후 `abort()` 호출
+
+### fetch 사용시
+
+```js
+const controller = new AbortController();
+
+fetch("/foo/bar", {
+  signal: controller.signal,
+})
+  .then((res) => res.json())
+  .then((data) => {
+    console.log(data);
+  })
+  .catch((err) => console.log("err: " + err));
+// log => "err: AbortError: The user aborted a request."
+
+// 요청 취소
+controller.abort();
+```
+
+### axios 사용시
+
+```js
+const controller = new AbortController();
+
+axios
+  .get("/foo/bar", {
+    signal: controller.signal,
+  })
+  .then((res) => {
+    //...
+  })
+  .catch((err) => console.log("err: " + err));
+// log => "err: AbortError: The user aborted a request."
+
+// 요청 취소
+controller.abort();
+```
+
+## 참조
+
+- [AbortController](https://developer.mozilla.org/ko/docs/Web/API/AbortController)
+- [Cancellation | Axios Docs](https://axios-http.com/docs/cancellation)
+
+**피드백은 언제나 환영입니다.**

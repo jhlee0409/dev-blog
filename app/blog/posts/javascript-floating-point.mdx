@@ -1,0 +1,82 @@
+---
+title: "부동 소수점이란, What is floating point"
+publishedAt: "2022-11-09"
+summary: "부동 소수점이란, What is floating point"
+tags: "javascript, floating point"
+---
+
+## 다음과 같은 경우를 보자
+
+<ImageGallery
+  images={[
+    {
+      src: "https://cdn-images-1.medium.com/max/1600/0*bexLMtD9UBbVmE1S.png",
+      alt: "얘는 왜 이럴까요?",
+    },
+  ]}
+/>
+
+## 왜 이런 일이 일어나는 걸까?
+
+왜 `0.1 + 0.2 !== 0.3`이지?
+
+바로 컴퓨터는 실수를 표현하는 방식이 있는데 이로 인해 발생하는 오차 때문이다. 오차의 원인을 알기 위해서는 부동 소수점이 무엇인지 알 필요가 있다.
+
+## 부동 소수점
+
+컴퓨터에서는 2진수로만 표기를 해야하기 때문에 실수를 표현하는 것은 복잡한 절차를 따라야한다. 실수를 표현하는 방식에는 고정 소수점과 부동 소수점이 있다.
+
+부동 소수점 : 실수는 가수부(정수부)와 지수부(소수부)로 나누어 표현을 한다
+
+고정 소수점 : 자릿수가 제한되어 있어 표현 가능한 범위가 매우 작다.
+
+하지만 부동 소수점은 아래와 같은 수석을 사용해 표현 가능한 범위가 매우 크다. 현재 사용되는 부동 소수점은 [IEEE 754](https://ko.wikipedia.org/wiki/IEEE_754) 표준을 따르고 있다.
+
+- 32bit의 `float`형 실수는 아래와 같이 표현한다.
+
+1bit = 부호 / 8bit = 지수부 / 23bit = 가수부
+
+- 64bit의 `double`형 실수는 아래와 같이 표현한다.
+
+1bit = 부호 / 11bit = 지수부 / 52bit = 가수부
+
+## 오차
+
+부동 소수점은 고정 소수점보다 많은 실수를 표현할 수 있지만 항상 오차는 존재한다. 표현 가능한 범위는 늘어나지만 10진수를 정확하게 표현할 수는 없다. 언제나 정확한 값이 아닌 `근사치`를 표현할 뿐이다.
+
+<ImageGallery
+  images={[
+    {
+      src: "https://cdn-images-1.medium.com/max/1600/0*qwjoBbaeOSrQAJdx.png",
+      alt: "근사치 1",
+    },
+  ]}
+/>
+
+<ImageGallery
+  images={[
+    {
+      src: "https://cdn-images-1.medium.com/max/1600/0*YW9u5Sbxhe8kkmnF.png",
+      alt: "근사치 2",
+    },
+  ]}
+/>
+
+실수를 2진수로 변환하면 가수부의 길이는 무한대이다. 하지만 실수를 표현할 수 있는 길이는 제한되어 있기 때문에 일정 자릿수 뒤에 표기되는 소수점들을 잘라낸다. 잘려진 뒷 부분만큼 오차가 발생한다. 이러한 오차를 줄일 수 있는 것이`double`형 실수이다.
+
+`float`형 실수 : 1.2E-38 ~ 3.4E38 까지의 범위 표현 가능
+`double`형 실수 : 2.2E-308 ~ 1.8E308 까지의 범위 표현 가능
+
+자바스크립트에서의 Number 표기
+
+- `double`형의 64bit 실수이다.
+- 소수점 이하 17자리 표기, 반올림
+- Number가 가질 수 있는 가장 큰 값은 1.8E308, 이상은 Infinity로 표기
+
+## 참고
+
+- [코딩교육 티씨피스쿨](http://tcpschool.com/java/java_datatype_floatingPointNumber)
+- [위 수식이 틀린 이유를 설명해보십쇼 (개발면접타임)](https://www.youtube.com/watch?v=-GsrYvZoAdA)
+- [Number — JavaScript | MDN](https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/Number)
+
+**피드백은 언제나 환영입니다.**

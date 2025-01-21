@@ -1,0 +1,75 @@
+---
+title: "Next.js 13, Page Extensions"
+publishedAt: "2022-11-17"
+summary: "Next.js 13, Page Extensions"
+tags: "nextjs, page extensions"
+---
+
+## 서론
+
+작업을 하다보면 임시적으로 접근을 제한하여야 하는 파일들이 있을 수 있다.
+
+폴더 최상위에 존재하는 `next.config.js`의 `pageExtensions`을 통해 `page`디렉토리 내 파일들을 대상으로 확장자명에 따라서 파일의 접근을 막을 수 있다.
+
+`pageExtensions`의 규칙을 따르지 않은 파일에 대해서는 접근시 `404 (Not Found)`에러를 반환한다.
+
+- **default pageExtensions**
+
+```js
+// next.config.js
+module.exports = {
+  pageExtensions: ["jsx", "js", "tsx", "ts"],
+};
+```
+
+## 사용법
+
+> *e.g.* `_page._` *prefix를 붙일 시*
+
+```js
+module.exports = {
+  pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.js"],
+};
+```
+
+- 위와 같이 확장자명을 설정한다면 `pages` 디렉토리 내에 포함하고자 하는 파일의 확장자명에 전부 `page.`을 붙여야한다.
+- `_document`, `_app` 그리고 `pages/api`내에 있는 파일에도 동일하게 적용시켜 주어야한다.
+
+## 현재 디렉토리 구조
+
+```text
+└─ pages
+    ├─ _app.page.tsx
+    ├─ _document.page.tsx
+    ├─ home
+    │  └─ main.page.tsx
+    │  └─ exclude.tsx  // 제외
+    └─ main.page.tsx
+```
+
+### 빌드시
+
+```text
+Page
+  ┌ ● /
+  ├   /_app
+  ├ ○ /404
+  └ ● /home/main
+```
+
+- `exclude.page.tsx` 로 확장자명 변경후 재빌드시
+
+```text
+Page
+  ┌ ● /
+  ├   /_app
+  ├ ○ /404
+  ├ ● /home/exclude
+  └ ● /home/main
+```
+
+## 참고
+
+- [Custom Page Extensions](https://nextjs.org/docs/api-reference/next.config.js/custom-page-extensions#including-non-page-files-in-the-pages-directory)
+
+**피드백은 언제나 환영입니다.**

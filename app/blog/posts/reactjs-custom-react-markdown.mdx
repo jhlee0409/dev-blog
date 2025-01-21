@@ -1,0 +1,154 @@
+---
+title: "react-markdown에서 image css 적용하기"
+publishedAt: "2022-11-16"
+summary: "react-markdown에서 image css 적용하기"
+tags: "react, css, react-markdown"
+---
+
+## 서론
+
+이 포스팅은 `react-markdown` 라이브러리를 쓰고 있는 유저들에게 해당된다. 아무런 추가 설정없이 마크다운에 이미지를 넣게 된다면 매우 만족스럽지 못하게 이미지가 나온다. 이번 포스팅에서는 간단하게 이미지 css를 적용할 수 있는 방법을 설명한다.
+
+바로 시작
+
+## 결과물
+
+일단 Before, After 먼저 공개
+
+### 1–1 Before
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:700/0*b04azwRgG7grFyMG.png",
+      alt: "▲ Before",
+    },
+  ]}
+/>
+
+### 1–2 After
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:700/0*2dx7D48Hk5M5OBPr.png",
+      alt: "▲ After",
+    },
+  ]}
+/>
+
+## 과정
+
+이번 포스팅에서 사용될 markdown
+
+```
+// 마크다운 내 파일 소스
+![업데이트 선택](...image src path)
+```
+
+### 2–1 이미지를 커스텀하기 위한 컴포넌트 생성
+
+```jsx
+const ImageComponent = ({ node, ...props }) => {
+  // props: {src: '', alt: ''}
+  // node : props를 포함한 추가 정보들을 담은 객체, node 객체에서 props는 properties를 가리킴,
+  // 여기서는 사용 안함, 이런게 있다
+  return (
+    <div>
+      <img {...props} alt={props.alt} />
+    </div>
+  );
+};
+
+export default ImageComponent;
+```
+
+### 2–2 이미지 컴포넌트를 components에 전달
+
+```jsx
+import ReactMarkdown from "react-markdown";
+// ... 기타 플러그인 제외
+<ReactMarkdown
+  components={{
+    img: ImageComponent,
+  }}
+>
+  {content} // 마크다운 파일의 내용
+</ReactMarkdown>;
+//...
+```
+
+이후에도 커스텀하고 싶은 태그가 있다면 `img` 와 같이 해당 태그를 추가하고 똑같이 컴포넌트를 생성해 전달해주면 된다.
+
+여기까지만 하면 완전 기본 설정은 끝난 것 (`div` 태그 추가한 것 이외에는 설정 전 Before 와 똑같음)
+
+### 2–3 이미지 아래 부연 설명 추가
+
+```jsx
+const ImageComponent = ({ node, ...props }) => {
+  return (
+    <div>
+      <img {...props} alt={props.alt} />
+      <p> {`▲ ${props.alt}`}</p>
+    </div>
+  );
+};
+
+export default ImageComponent;
+```
+
+여기까지 하면 아래의 사진과 같은 결과물이 나온다
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:700/0*SYcE2IjG31NFq4jj.png",
+      alt: "▲ 중간 점검",
+    },
+  ]}
+/>
+
+### 2–4 CSS 추가
+
+```jsx
+import "sample.css";
+// 2-3 에서 ~~
+const ImageComponent = ({ node, ...props }) => {
+  return (
+    <div className="markdown-image-box">
+      <img {...props} alt={props.alt} />
+      <p> {`▲ ${props.alt}`}</p>
+    </div>
+  );
+};
+export default ImageComponent;
+```
+
+```css
+.markdown-image-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.markdown-image-box > img {
+  padding: 10px;
+}
+```
+
+![](https://miro.medium.com/v2/resize:fit:700/0*1vB8hz6Sq2ZQvT63.png)
+
+▲ After에서 봤던 결과물
+
+## 결론
+
+이번 포스팅은 `css 적용은 이렇게 한다.` 라고 알려주기 위한 간단한 작업에 불과하다. (물론 필자는 이대로 쓰는.. )
+
+과정을 보면 css 적용을 위한 프레임을 짜는 게 어려운 작업은 아니다.
+
+---
+
+**피드백은 언제나 환영입니다.**

@@ -1,0 +1,144 @@
+---
+title: "AWS CodeBuild Webhook 이벤트 설정하기"
+publishedAt: "2022-11-16"
+summary: "AWS CodeBuild Webhook 이벤트 설정하기"
+tags: "AWS, CodeBuild"
+---
+
+## 서론
+
+- `AWS CodeBuild`를 사용하다보면 특정 상황에서만 동작하도록 설정해야할 때가 있다. e.g. `master branch`에 `merge`가 되었을 때 빌드 시작
+- `AWS CodeBuild`의 간단한 설정 만으로 해당 기능을 구현할 수 있다.
+- 소스 코드의 변경을 자동적으로 감지하고 특정 상황에서만 빌드 트리거가 발생하도록 설정해보겠다.
+- 이미 `AWS CodeBuild`의 빌드 프로젝트가 생성되어 있다고 가정하겠다.
+- `AWS CodeBuild`의 설명과 생성 프로세스는 추후 포스팅해서 다루도록 하겠다.
+
+## 설정 프로세스
+
+### 1. 특정 빌드 프로젝트로 이동
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:700/0*J-O-J0kCaT8sG4Px.png",
+      alt: "빌드 프로젝트 설정",
+    },
+  ]}
+/>
+
+### 2. 우측 상단 `편집` 클릭 후 `소스`클릭
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:700/0*cdEbmzbu3_icVi85.png",
+      alt: "편집 -> 소스 클릭",
+    },
+  ]}
+/>
+
+### 3. WebHook 이벤트 활성화
+
+**3–1 아래의 체크 박스를 클릭하면 설정 가능한 항목들이 나타난다.**
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:700/0*KrVAy1tr4IpUYXbs.png",
+      alt: "Webhook 활성화",
+    },
+  ]}
+/>
+
+**3–2 우리가 이번에 설정할 항목들은 아래와 같다.**
+
+1. `이벤트 유형` 설정
+2. `HEAD_REF`와 `BASE_REF` 설정
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:700/0*21k9iMUEm_fRUhRG.png",
+      alt: "Webhook 항목 선택",
+    },
+  ]}
+/>
+
+**3–3 이벤트 유형 클릭 시 아래와 같은 4가지 선택사항이 있다.
+(중복 선택 가능)**
+
+- `PUSH` : 해당 소스 코드의 branch 상관없이 Push가 일어나면 자동으로 빌드 시작
+- `PULL_REQUEST_CREATED` : 풀 리퀘스트가 생성되었을 때 자동으로 빌드 시작
+- `PULL_REQUEST_UPDATED` : 풀 리퀘스트가 업데이트 되었을 때 자동으로 빌드 시작
+- `PULL_REQUEST_MERGED` : 생성된 풀 리퀘스트가 병합을 완료했을 때 자동으로 빌드시작
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:580/0*wmuV61R8uMi2sXKz.png",
+      alt: "이벤트 유형 선택",
+    },
+  ]}
+/>
+
+**3–4 특정 조건 생성하기**
+
+- `HEAD_REF` : 출발점
+- `BASE_REF` : 도착점
+
+> e.g. 만약 위에서 `PULL_REQUEST_MERGED`만 선택했을 경우
+>
+> `dev(HEAD_REF) branch` 에서 `main(BASE_REF) branch` 로 풀 리퀘스트가 생성되고 병합이 완료되었을 때 빌드 시작
+
+- `BASE_REF`와 `HEAD_REF`에는 `정규식`을 입력해야하는 데 `^refs/heads/${브랜치 이름}$` 으로 입력해두면 일치하는 브랜치를 `참조`한다.
+- `BASE_REF` 의 경우 PULL 요청에서만 작동한다.
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:393/0*X9-tU0U0x3c3WlmK.png",
+      alt: "추가 조건 설정",
+    },
+  ]}
+/>
+
+**3–5 특정 조건 완성**
+
+- 아래와 같은 조건으로 설정했다면 `dev → main` 으로 생성된 `풀 리퀘스트`가 `병합이 완료`되면 빌드를 자동으로 시작
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:700/0*7xrLkVqRdQ_OdgGE.png",
+      alt: "Webhook 설정 완료",
+    },
+  ]}
+/>
+
+**3–6 설정 업데이트**
+
+- `소스 업데이트` 클릭하면 설정 완료
+
+<ImageGallery
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:260/0*_ruTyAP8bVO1opad.png",
+      alt: "업데이트 선택",
+    },
+  ]}
+/>
+
+---
+
+## 참조
+
+- [WebhookFilter](https://docs.aws.amazon.com/codebuild/latest/APIReference/API_WebhookFilter.html)
+
+**피드백은 언제나 환영입니다.**

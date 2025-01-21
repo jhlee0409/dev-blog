@@ -1,0 +1,113 @@
+---
+title: "App Router에서 반응형 이미지 다루는 세가지 방법"
+publishedAt: "2024-01-29"
+summary: "App Router에서 반응형 이미지 다루는 세가지 방법"
+tags: "nextjs, responsive image, app router"
+---
+
+## 서론
+
+반응형 이미지를 적용하기 위해서는 sizes 프로퍼티와 함께 style이나 className으로 추가적인 스타일링이 필요하다.
+
+- `Next js`에서는 아래와 같이 세 가지의 방법을 제시하고 있다.
+
+## 1. 정적 이미지를 사용하는 방법
+
+```javascript
+import Image from "next/image";
+import me from "../photos/me.jpg";
+
+export default function Author() {
+  return (
+    <Image
+      src={me}
+      alt="Picture of the author"
+      sizes="100vw"
+      style={{
+        width: "100%",
+        height: "auto",
+      }}
+    />
+  );
+}
+```
+
+## 2. 동적인 소스의 이미지 비율을 알때 사용하는 방법
+
+- 동적인 소스들은 `width`와 `height` 프로퍼티가 설정이 되어야 한다. 그렇지 않으면 에러를 반환한다.
+- 비율을 맞추고 싶다면 `width`와 `height`로 조정하면 된다.
+
+```javascript
+import Image from "next/image";
+
+export default function Page({ photoUrl }) {
+  return (
+    <Image
+      src={photoUrl}
+      alt="Picture of the author"
+      sizes="100vw"
+      style={{
+        width: "100%",
+        height: "auto",
+      }}
+      width={300}
+      height={200}
+    />
+  );
+}
+```
+
+- 소스의 이미지의 비율이 3:2라면 `width={300}` 과 `height={200}` 으로 값을 설정한다면 아래와 같은 결과를 devtool을 통해 확인할 수 있다.
+- width와 height의 경우 style 프로퍼티의 값으로 오버라이딩 된다.
+  ![[nextjs_app_router_responsive_image_01.png]]
+- 또한 외부 이미지의 url을 가져올 경우 `next.config.js`에서 해당 호스트를 허용해줘야 한다. 설정해주지 않을 경우 아래와 같은 에러를 만날 수 있다.
+  `hostname "{대충 호스트 네임}" is not configured under images in your "next.config.js" See more info: [https://nextjs.org/docs/messages/next-image-unconfigured-host](https://nextjs.org/docs/messages/next-image-unconfigured-host)`
+
+- 허용하는 방법은 아래와 같다.
+- `hostname`을 제외한 값들은 선택사항이다.
+- [Configuration Options](https://nextjs.org/docs/app/api-reference/components/image#configuration-options)에 자세한 설명이 되어있다.
+
+```javascript
+// next.config.js
+module.exports = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https", // optional // http | https
+        hostname: "example.image.com", // required
+        port: "", // optioonal
+        pathname: "", // optional
+      },
+    ],
+  },
+};
+```
+
+## 3. fill 프로퍼티를 이용한 방법
+
+- 만약 비율을 모를 때 `fill` 프로퍼티와 함께 해당 이미지를 감싸는 wrapper를 만들고 해당 wrapper에 position: relative를 통해 wrapper 비율을 설정한다.
+- object-fit 속성을 통해 이미지를 늘리거나 크롭할 수 있다.
+
+```javascript
+import Image from "next/image";
+
+export default function Page({ photoUrl }) {
+  return (
+    <div style={{ position: "relative", width: "500px", height: "300px" }}>
+      <Image
+        src={photoUrl}
+        alt="Picture of the author"
+        sizes="500px"
+        fill
+        style={{
+          objectFit: "contain",
+        }}
+      />
+    </div>
+  );
+}
+```
+
+### 참조
+
+- [Responsive Images](https://nextjs.org/docs/app/api-reference/components/image#responsive-images)

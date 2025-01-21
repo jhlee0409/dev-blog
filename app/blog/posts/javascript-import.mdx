@@ -1,0 +1,142 @@
+---
+title: "Javascript import 파헤치기"
+publishedAt: "2022-11-16"
+summary: "Javascript import 파헤치기"
+tags: "javascript, import"
+---
+
+## import란?
+
+- `import` 할 모듈은 무조건 `엄격 모드`
+- HTML 안에 작성한 스크립트에는 `import` 사용 불가하며, 대신 `<script>` 태그의 `nomodule`속성을 이용해 가능
+- 정적 `import` 는 다른 모듈에서 `export` 한 바인딩을 가져올 때 사용
+
+1. 초기 의존성을 불러올 때 사용
+
+2. 가져올 모듈은 `문자열` 만 허용
+
+- 동적 `import` 는 함수형 구문인 `import()` 를 사용
+
+1. `type="module"`을 필요로 하지 않는다.
+2. 모듈을 조건적으로 가져오고 싶을 때 사용
+3. 필요할 때만 가져올 때 사용
+
+## 정적 import
+
+### 사용법
+
+**1. 기본값 가져오기**
+
+`module` 파일에서 `export default` 한 값 가져오기
+
+```js
+import a from "module";
+```
+
+**2. 전체 모듈 가져오기 (Name Space Import )**
+
+```js
+import * as aliasA from "module";
+```
+
+**3. 하나의 멤버만 가져오기**
+
+```js
+import { memberA } from "module";
+```
+
+**4. 여러 멤버 가져오기**
+
+```js
+import { memberA, memberB } from "module";
+```
+
+**5. 별명 지정해서 멤버 가져오기**
+
+```js
+import { realMemberName as aliasMemberName } from "module";
+import {
+  realMemberNameA as aliasMemberNameA,
+  realMemberNameB as aliasMemberNameB,
+} from "module";
+```
+
+**6. 바인딩없이 모듈 전체의 사이드 이펙트 가져오기**
+
+```js
+import "module";
+```
+
+**7. 기본값 가져오기 + 멤버 가져오기**
+
+기본값 가져오기 먼저 선언 해야함
+
+```js
+import sampleDefault, * as aliasA from "module";
+// or
+import sampleDefault, { memberA, memberB } from "module";
+```
+
+## 동적 import
+
+- 제약이 존재한다.
+
+1. `import` 문에 동적 매개변수 사용 불가
+
+```js
+import impossible from getModuleA();
+```
+
+2. 모듈 경로는 원시 문자열만 가능, 함수 호출 결괏값을 경로로 사용 불가
+
+3. 런타임 or 조건부로 모듈을 불러올 수 없다는 점
+
+```js
+if(...conditionA) {
+	import ...; // 조건부 호출 불가
+}
+// or
+{
+	import ...; // 블록 안에서 호출 불가
+}
+```
+
+### 왜 제약이 있지?
+
+- `import/export`는 코드 구조의 중심을 잡아주는 역할이기 때문
+- 코드 구조 분석 -> 모듈을 모아 번들링 -> 미사용 모듈은 제거 하는 프로세스
+- 코드 구조가 간단 & 고정일 경우에만 가능
+
+### 사용법
+
+- `import(module)` -> 프로미스를 반환
+- 코드 내 어디서 동적으로 호출, 사용 가능
+
+```js
+import("module path")
+  .then((obj) => `obj === module object`)
+  .catch((err) => `loading err, e.g. no matched module`);
+```
+
+- 비동기 함수에서도 가능
+
+```jsx
+const myFunction = async () => {
+  const module = await import('modulepath')
+  ...
+}
+```
+
+### 주의
+
+- 일반 스크립트에서도 동작 `<script type="module">` 불필요
+- 함수 호출 처럼 보이지만 함수 호출 아님
+- `super()` 처럼 괄호를 쓰는 특별한 문법
+- 그렇기에 `import`를 변수에 복사, 함수의 메소드인 `call/apply` 사용 불가
+
+## 참조
+
+- [import — JavaScript — MDN Web Docs — Mozilla](https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Statements/import)
+- [동적으로 모듈 가져오기 — 모던 JavaScript 튜토리얼](https://ko.javascript.info/modules-dynamic-imports)
+
+**피드백은 언제나 환영입니다.**

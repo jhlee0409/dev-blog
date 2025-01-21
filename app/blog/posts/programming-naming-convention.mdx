@@ -1,0 +1,81 @@
+---
+title: "네이밍 컨벤션 파헤치기"
+publishedAt: "2022-11-16"
+summary: "네이밍 컨벤션 파헤치기"
+tags: "programming, naming convention"
+---
+
+## 네이밍 컨벤션 종류
+
+- 각 영단어에 대한 네이밍에 대해 여러 종류가 있다
+
+1. 카멜 케이스 (camelCase)
+2. 파스칼 케이스 (PascalCase)
+3. 스네이크 케이스 (snake_case)
+4. 케밥 케이스 (kebab-case)
+5. 헝가리언 표기법 (Hungarian Notation)
+
+## WHY?
+
+이러한 네이밍 컨벤션이 왜 필요할까?
+
+위의 컨벤션들은 모두 영어 합성어에 대한 기법이다.
+
+프로그래밍에서 여러 언어들은 각각 정해놓은 명령어와 선언방식이 있고 그걸 따르기 위해서 띄어쓰기를 이용한다. 그렇기에 띄어쓰기를 하게되면 여러 단어를 하나로 묶어 표현할 수 없게된다.
+
+그렇다고 모든 영단어를 띄어쓰기 없이 소문자로 적게되면 가독성이 떨어질 뿐더러 특수한 상황(e.g. class의 이름)에서의 명명을 소문자로 하게된다면 오류를 범하게 된다.
+
+이러한 여러 컨벤션들은 각 팀의 합의 하에 정해진다
+
+각 케이스가 어떠한 경우에 사용되는지 또 어떻게 사용하는지 알아보자
+
+## 사용법
+
+- 기본적으로 영어합성어에서 표기하는 기법
+
+### 카멜케이스
+
+- 유래 : 쌍봉낙타의 등과 비슷하게 생겨서 붙여진 이름
+- 주로 `파일, 변수, 함수` 등 대상의 이름을 `띄어쓰기 없이` 짓는다.
+- 합성어에서 기본적으로 소문자로 적되, `첫 단어를 제외`한 모든 단어의 `첫 글자는 대문자`로 표기한다.
+
+_e.g. camelCase, isOpen, setState, namingConvention_
+
+### 파스칼 케이스
+
+- 유래 : 파스칼 언어에서 사용하던 표기법이어서 붙여진 이름
+- 주로 `클래스` 등 대상의 이름을 `띄어쓰기 없이` 짓는다.
+- 합성어에서 기본적으로 소문자로 적되, 모든 단어의 `첫 글자는 대문자`로 표기한다.
+
+_e.g. PascalCase, MyClass, MyComponent, NamingConvention_
+
+### 스네이크 케이스
+
+- 유래 : 뱀의 형태와 비슷하게 생겨서 붙여진 이름
+- 주로 `파일, 변수, 함수, 상수` 등 각 단어를 띄어쓰기 대신 `_`로 이어 붙여 짓는다.
+
+_e.g. snake_case, is_open, ENUM_TYPE, naming_convention_
+
+### 케밥 케이스
+
+- 유래 : 케밥 꼬챙이의 모습과 비슷하게 생겨서 붙여진 이름
+- 주로 `url` 등 각 단어를 띄어쓰기 대신 `-`로 이어 붙여 짓는다.
+
+_e.g. kebab-case, is-open, set-state, naming-convention_
+
+### 헝가리언 케이스
+
+- 유래 : 해당 표기법을 만든 사람이 헝가리인이어서 붙여진 이름
+- 변수명 앞에 `데이터 타입`을 붙여 짓는다.
+- 타입이 바뀌면 변수명도 바뀌어야 하는 문제 때문에 이제는 지양하는 방향
+
+_e.g. int -> iNumber, str -> strName_
+
+## 참조
+
+- [카멜 표기법](https://ko.wikipedia.org/wiki/%EC%B9%B4%EB%A9%9C_%ED%91%9C%EA%B8%B0%EB%B2%95)
+- [스네이크 표기법](https://ko.wikipedia.org/wiki/%EC%8A%A4%EB%84%A4%EC%9D%B4%ED%81%AC_%ED%91%9C%EA%B8%B0%EB%B2%95)
+- [Case Styles: Camel, Pascal, Snake, and Kebab Case](https://betterprogramming.pub/string-case-styles-camel-pascal-snake-and-kebab-case-981407998841)
+- [카멜, 파스칼, 스네이크, 헝가리안, 케밥 표기법 정리](https://needjarvis.tistory.com/632)
+
+**피드백은 언제나 환영입니다.**

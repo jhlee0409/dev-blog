@@ -1,0 +1,66 @@
+---
+title: "단항 연산자 알아보기"
+publishedAt: "2022-11-16"
+summary: "단항 연산자 알아보기"
+tags: "javascript, unary operator"
+---
+
+## 서론
+
+부호를 특정 데이터 타입에 쓴다면 의도치 않은 결과가 나올 때가 있다.
+
+그렇기에 간단하게 부호를 썼을 때 타입이 어떻게 변환되는지 확인해 보겠다.
+
+## 1. 단항 더하기 연산자 (Unary + Operator)
+
+`단항 더하기 연산자 (Unary + Operator)`는 피연산자를 숫자 유형으로 변환한다.
+
+피연산자에 어떠한 영향도 주지 않으며 음수를 양수로 만들지도 않는다.
+
+숫자 타입이 아닌 피연산자에게는 피연산자를 숫자 타입으로 변환하여 반환한다.
+
+이 때는 피연산자를 변경하는 것이 아닌 숫자 타입으로 변환한 값을 생성해서 반환한다.
+
+```js
+console.log(+"10"); // 10
+
+console.log(+""); // 0
+
+console.log(+"jack"); // NaN (Not a Number)
+
+console.log(+undefined); // NaN (Not a Number)
+
+console.log(+true); // 1
+
+console.log(+false); // 0
+
+console.log(+null); // 0
+
+console.log(+1n); // Uncaught TypeError: BigInt를 숫자로 변환할 수 없다.
+```
+
+## 2. 단항 부정 연산자 (Unary - Operator)
+
+`단항 부정 연산자 (Unary - Operator)`는 피연산자의 부호를 반전한 값을 반환한다.
+
+나머지 특성은 `단항 더하기 연산자`와 같다.
+
+```js
+console.log(-"10"); // -10
+
+console.log(-""); // -0
+
+console.log(-"jack"); // NaN (Not a Number)
+
+console.log(-undefined); // NaN (Not a Number)
+
+console.log(-true); // -1
+
+console.log(-false); // -0
+
+console.log(-null); // -0
+
+console.log(-1n); // Uncaught TypeError: BigInt를 숫자로 변환할 수 없다.
+```
+
+**피드백은 언제나 환영입니다.**

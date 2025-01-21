@@ -1,0 +1,158 @@
+---
+title: "스크롤바 커스텀 하기"
+publishedAt: "2022-11-16"
+summary: "스크롤바 커스텀 하기"
+tags: "css, customScrollbar"
+---
+
+통일성있는 스크롤바를 원한다면 직접 커스텀 해주어야 한다.
+
+`webkit` 엔진을 사용하는 브라우저에서 사용 가능 (e.g. Chrome, Edge, Opera, Safari)
+
+이와 관련된 CSS 선택자들은 `비표준`이다.
+
+# 사용법 (SCSS 기준)
+
+## 1. 전체 스크롤바
+
+// scss 기준
+
+```sass
+&::-webkit-scrollbar {
+  // color or width로 가장 먼저 설정해주어야함.
+  // 그러면 스크롤바가 뷰에 보이기에는 없는 것처럼 보이며
+  // 이때부터는 전부터 커스텀 해주어야 함
+  // 실제로는 스크롤 동작
+  width: 16px;
+};
+```
+
+**2. 실제 스크롤의 컨트롤 가능한 부분**
+
+```sass
+&::-webkit-scrollbar-track {
+  border-radius: 5px;
+  background-color: skyblue;
+};
+```
+
+<ImageGallery
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:21/0*xxihvlMSJ0ttHQc6.png",
+      alt: "-webkit-scrollbar-track 설정 후",
+    },
+  ]}
+/>
+
+**3. track 범위 중 실제 스크롤이 움직이는 부분**
+
+```sass
+&::-webkit-scrollbar-thumb {
+  background-color: #dddddd;
+  border-radius: 8px;
+  border: 5px solid #1b1b1b;
+};
+```
+
+<ImageGallery
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:19/0*FAjfQCOFNSiBA_TA.png",
+      alt: "-webkit-scrollbar-thumb 설정 후",
+    },
+  ]}
+/>
+
+**4. 최상, 하단에 있는 스크롤 업 다운 화살표 버튼**
+
+```sass
+&::-webkit-scrollbar-button {
+  // 커스텀 할떄는 기본적으로 버튼이 없음
+  background-color: red;
+};
+```
+
+<ImageGallery
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:18/0*p2_9yOmrIpxkfL8I.png",
+      alt: "-webkit-scrollbar-button 설정 후",
+    },
+  ]}
+/>
+
+**5. track 범위 중 thumb를 제외한 부분**
+
+track에서 설정한 css 보다 track-piece의 우선순위가 높음
+
+```sass
+&::-webkit-scrollbar-track-piece {
+  background-color: violet;
+  border: 3px solid black;
+  border-radius: 4px;
+};
+```
+
+<ImageGallery
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:15/0*ExQOC3ndRxqkLymY.png",
+      alt: "-webkit-scrollbar-track-piece 설정 후",
+    },
+  ]}
+/>
+
+**6. X축까지 스크롤이 생길때 X축과 Y축 스크롤의 모서리 부분**
+
+```sass
+&::-webkit-scrollbar-corner {
+  // x축 스크롤이 있어야 보임
+  background-color: blue;
+};
+```
+
+<ImageGallery
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:17/0*xnw3YNvrxg-9reBk.png",
+      alt: "-webkit-scrollbar-corner 설정 후 (하단 파란부분)",
+    },
+  ]}
+/>
+
+**7. 일부 요소에서 사용되는 드래그로 사이즈 조절 기능**
+
+e.g. textarea tag
+
+```sass
+&::-webkit-resizer {
+  background-color: red;
+};
+```
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:156/0*9RbQdlqmK_u0U_f4.png",
+      alt: "-webkit-resizer 설정 후",
+    },
+  ]}
+/>
+
+## **참고 사진**
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:415/0*xRPCcBPVCoHKNvkx.png",
+      alt: "scrollbar selector 통합본",
+    },
+  ]}
+/>
+
+---
+
+**피드백은 언제나 환영입니다!**

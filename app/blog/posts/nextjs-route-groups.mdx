@@ -1,0 +1,67 @@
+---
+title: "Next.js 13, Route Groups"
+publishedAt: "2022-12-07"
+summary: "Next.js 13, Route Groups"
+tags: "nextjs, route groups"
+---
+
+## 서론
+
+이번에 `Next.js 13`이 나오면서 새로운 디렉토리 구조가 소개되었다.
+
+바로 `app 디렉토리`이다.
+
+기존의 `pages 디렉토리`보다 더 빠르고 더 쉽다고 소개되어 있다.
+
+`app 디렉토리`는 기존의 디렉토리 구조보다 더 간결하고 작성하기 쉽게 할 수 있다.
+
+그 여러 기능들 중 각 라우트 별로 `layout` 파일을 생성해 공통 레이아웃 설정이할 수 있는 기능이 있다.
+
+`app 디렉토리` 루트에 생성하게 되면 모든 라우트에 공통으로 적용된다.
+
+해당 `layout 파일`이 있는 디렉토리의 하위 라우트들은 레이아웃이 적용된다는 것이다.
+
+특정 라우트에만 레이아웃 설정을 하고 싶다면 `layout 파일`을 생성할 필요 없이 바로 적용을 하면 된다.
+
+그렇다면 공통적인 레이아웃을 일부분에만 적용하고 싶다면 어떻게 해야 할까.
+
+바로 `Route Groups`을 사용하면 된다.
+
+## Use Route Groups
+
+- `Route Groups`은 특정 라우트를 그룹화 시켜준다.
+- 특정 조건을 따르는 폴더를 만들어 하위에 그룹화 시킬 폴더나 파일을 넣으면 되는데, `Route Groups`은 `URL 경로`에 영향을 받지 않는다.
+- 또한 그룹화 시켜서 공통 레이아웃을 적용시킬 뿐만 아니라 여러 그룹으로 분리해서 루트 레이아웃을 각각 설정할 수도 있다.
+
+## 사용법
+
+- 기본적으로 폴더명을 `() 괄호`로 감싸주면 된다.
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://miro.medium.com/v2/resize:fit:700/1*zV3jtuDnx2bA4i7gw0bfNQ.png",
+      alt: "Route Groups",
+    },
+  ]}
+/>
+
+- 위와 같이 작성하면 `() 괄호` 안에 `URL`은 생략된다.
+- 그리고 `(content) 폴더`에 `layout 파일`을 생성하면 `URL`에는 영향은 받지 않지만 레이아웃을 공통으로 적용할 수 있게 된다.
+
+## Root Layout
+
+- `Root Layout`의 경우, `최상위(app)`의 파일을 제거하고 각 `Route Groups`를 만들어서 `layout 파일`을 생성해주면 된다.
+- 이 경우에는 완전히 다른 UI나 섹션으로 분할할 때 유용하다.
+- 이 경우 해당 `layout 파일`에는 `<html>, <body>` 태그를 추가해주어야 한다.
+
+---
+
+## 참고
+
+- [Route Groups](https://beta.nextjs.org/docs/routing/defining-routes#route-groups)
+
+---
+
+피드백은 언제나 환영입니다.
