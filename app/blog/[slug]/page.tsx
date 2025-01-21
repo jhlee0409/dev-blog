@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { CustomMDX } from "app/components/mdx";
 import { formatDate, getBlogPosts } from "app/blog/utils";
 import { baseUrl } from "app/sitemap";
+import Image from "next/image";
 
 export async function generateStaticParams() {
   let posts = getBlogPosts();
@@ -109,10 +110,13 @@ export default function Blog({ params }) {
             ))}
           </div>
           {post.metadata.image && (
-            <img
+            <Image
               className="w-full"
               src={post.metadata.image}
               alt={post.metadata.title}
+              width={0}
+              height={0}
+              sizes="100vw"
             />
           )}
         </div>
