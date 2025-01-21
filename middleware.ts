@@ -4,6 +4,9 @@ import type { NextRequest } from "next/server";
 // URL 매핑 테이블
 const redirectMap: Record<string, string> = {
   "/서적/두려움이+없는+조직": "/blog/fearless-org",
+  "/회고/2024+Recap": "/blog/2024-recap",
+  "/항해+플러스+3기/항해플러스의+두+번째+코스%2C+클린코드를+마치며+-+FSD+편":
+    "/blog/hanghae-3rd-fsd",
   // 추가적인 리디렉션 규칙들을 여기에 추가할 수 있습니다
 };
 
