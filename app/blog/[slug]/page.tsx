@@ -93,6 +93,11 @@ export default function Blog({ params }) {
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           {formatDate(post.metadata.publishedAt)}
         </p>
+        {post.metadata.updatedAt && (
+          <p className="text-xs text-neutral-600 dark:text-neutral-400 pt-1">
+            Updated on {formatDate(post.metadata.updatedAt)}
+          </p>
+        )}
         <div>
           <div
             className="flex flex-wrap gap-2 my-4"
@@ -109,7 +114,7 @@ export default function Blog({ params }) {
               </span>
             ))}
           </div>
-          {post.metadata.image && (
+          {!!post.metadata.image && (
             <Image
               className="w-full"
               src={post.metadata.image}
