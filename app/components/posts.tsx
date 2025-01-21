@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { formatDate, getBlogPosts } from "app/blog/utils";
 
-export function BlogPosts() {
+type Props = {
+  viewAll?: boolean;
+};
+
+export function BlogPosts({ viewAll }: Props) {
   const allBlogs = getBlogPosts();
 
   const sortedByDate = allBlogs.sort((a, b) => {
@@ -13,7 +17,7 @@ export function BlogPosts() {
 
   return (
     <div>
-      {sortedByDate.slice(0, 5).map((post) => (
+      {sortedByDate.slice(0, viewAll ? undefined : 5).map((post) => (
         <Link
           key={post.slug}
           className="flex flex-col space-y-1 mb-4 blog-post-link"

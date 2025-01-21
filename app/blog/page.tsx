@@ -11,7 +11,7 @@ export default function Page() {
       <h1 className="font-semibold text-2xl mb-8 tracking-tighter">
         All Posts
       </h1>
-      <BlogPosts />
+      <BlogPosts viewAll />
     </section>
   );
 }
