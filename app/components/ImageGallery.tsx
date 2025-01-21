@@ -9,22 +9,30 @@ interface ImageInfo {
 
 interface ImageGalleryProps {
   images: ImageInfo[];
+  fullWidth?: boolean;
 }
 
-export function ImageGallery({ images }: ImageGalleryProps) {
+export function ImageGallery({ images, fullWidth = false }: ImageGalleryProps) {
   const getGridCols = (length: number) => {
-    if (length === 1) return "justify-center flex";
+    if (length === 1)
+      return "justify-center flex " + (fullWidth ? "w-full" : "");
     if (length === 2) return "grid grid-cols-2";
     return "grid grid-cols-2 lg:grid-cols-3";
   };
 
   return (
-    <div className="w-full flex justify-center">
+    <div className="w-full flex justify-center py-4">
       <div className={`w-full max-w-4xl ${getGridCols(images.length)} gap-4`}>
         {images.map((image, index) => (
           <div
             key={index}
-            className={images.length === 1 ? "w-3/4 md:w-1/2" : "w-full"}
+            className={
+              images.length === 1
+                ? fullWidth
+                  ? "w-full"
+                  : "w-3/4 md:w-1/2"
+                : "w-full"
+            }
           >
             <Image
               src={image.src}
