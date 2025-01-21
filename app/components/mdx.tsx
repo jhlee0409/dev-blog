@@ -3,6 +3,7 @@ import Image from "next/image";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import React from "react";
 import { ImageGallery } from "./ImageGallery";
+import { Badge } from "./Badge";
 
 function Table({ data }) {
   let headers = data.headers.map((header, index) => (
@@ -64,29 +65,39 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import darcula from "react-syntax-highlighter/dist/cjs/styles/prism/one-dark";
 
 function Code({ children, ...props }) {
+  // className이 없으면 인라인 코드로 처리
+  if (!props.className) {
+    // Badge로 처리할 특수 문자열 체크
+    if (typeof children === "string") {
+      return <Badge>{children}</Badge>;
+    }
+    // 일반 인라인 코드
+    return <code>{children}</code>;
+  }
+
   const language = props.className?.replace(/language-/, "");
 
   return (
-    <div className="rounded-md overflow-hidden">
+    <div className="rounded-md overflow-hidden mt-4">
       <div className="flex justify-between bg-[rgb(40,_44,_52)] px-4 pt-3">
         <div className="flex items-center gap-2">
           <div className="bg-[#f45f57] w-2.5 h-2.5 rounded-full" />
           <div className="bg-[#f8bc2f] w-2.5 h-2.5 rounded-full" />
-          <div className="bg-[#41c83f] w-2.5 h-2.5 rounded-full" />
+          <div className="bg-[#28c841] w-2.5 h-2.5 rounded-full" />
         </div>
-        <span className="text-sm text-gray-500">{language}</span>
       </div>
-      <div className="code-container">
-        <SyntaxHighlighter
-          PreTag="pre"
-          language={language}
-          style={darcula}
-          showLineNumbers={true}
-          className="text-sm !rounded-none"
-        >
-          {String(children).replace(/\n$/, "")}
-        </SyntaxHighlighter>
-      </div>
+      <SyntaxHighlighter
+        language={language}
+        style={darcula}
+        customStyle={{
+          margin: 0,
+          padding: "1.5rem 1rem",
+          background: "rgb(40, 44, 52)",
+          borderRadius: "0",
+        }}
+      >
+        {children}
+      </SyntaxHighlighter>
     </div>
   );
 }
