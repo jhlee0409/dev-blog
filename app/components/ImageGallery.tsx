@@ -10,9 +10,14 @@ interface ImageInfo {
 interface ImageGalleryProps {
   images: ImageInfo[];
   fullWidth?: boolean;
+  fullHeight?: boolean;
 }
 
-export function ImageGallery({ images, fullWidth = false }: ImageGalleryProps) {
+export function ImageGallery({
+  images,
+  fullWidth = false,
+  fullHeight = false,
+}: ImageGalleryProps) {
   const getGridCols = (length: number) => {
     if (length === 1)
       return "justify-center flex " + (fullWidth ? "w-full" : "");
@@ -34,17 +39,23 @@ export function ImageGallery({ images, fullWidth = false }: ImageGalleryProps) {
                 : "w-full"
             }
           >
-            <Image
-              src={image.src}
-              alt={image.alt || `Image ${index + 1}`}
-              className="rounded-lg w-full h-auto"
-              width={0}
-              height={0}
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              style={{ width: "100%", height: "auto" }}
-            />
+            <div className="relative aspect-auto max-h-full overflow-hidden">
+              <Image
+                src={image.src}
+                alt={image.alt || `Image ${index + 1}`}
+                className="rounded-lg w-full h-auto object-contain"
+                width={0}
+                height={0}
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  maxHeight: fullHeight ? "100%" : "400px",
+                }}
+              />
+            </div>
             {image.alt && (
-              <p className="text-sm text-neutral-600 dark:text-neutral-400 whitespace-nowrap pt-2 !m-0">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 pt-2 !m-0">
                 {image.alt}
               </p>
             )}
