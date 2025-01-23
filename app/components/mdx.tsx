@@ -78,7 +78,7 @@ function Code({ children, ...props }) {
   const language = props.className?.replace(/language-/, "");
 
   return (
-    <div className="rounded-md overflow-hidden my-4">
+    <div className="code-container rounded-md overflow-hidden my-4">
       <div className="flex justify-between bg-[rgb(40,_44,_52)] px-4 pt-3">
         <div className="flex items-center gap-2">
           <div className="bg-[#f45f57] w-2.5 h-2.5 rounded-full" />
