@@ -61,20 +61,6 @@ html {
   @apply visible;
 }
 
-/* .prose pre {
-  @apply bg-neutral-50 dark:bg-neutral-900 rounded-lg overflow-x-auto border border-neutral-200 dark:border-neutral-900 py-2 px-3 text-sm;
-}
-
-.prose code {
-  @apply px-1 py-0.5 rounded-lg;
-}
-
-.prose pre code {
-  @apply p-0;
-  border: initial;
-  line-height: 1.5;
-} */
-
 .prose code span {
   @apply font-medium;
 }
@@ -85,23 +71,23 @@ html {
 }
 
 .prose p {
-  @apply my-4 text-neutral-800 dark:text-neutral-200;
+  @apply my-4 text-neutral-800 dark:text-neutral-200 leading-7;
 }
 
 .prose h1 {
-  @apply text-4xl font-medium tracking-tight mt-6 mb-2;
+  @apply text-4xl font-bold tracking-tight mt-6 mb-2;
 }
 
 .prose h2 {
-  @apply text-xl font-medium tracking-tight mt-6 mb-2;
+  @apply text-xl font-bold tracking-tight mt-6 mb-2;
 }
 
 .prose h3 {
-  @apply text-xl font-medium tracking-tight mt-6 mb-2;
+  @apply text-xl font-bold tracking-tight mt-6 mb-2;
 }
 
 .prose h4 {
-  @apply text-lg font-medium tracking-tight mt-6 mb-2;
+  @apply text-lg font-bold tracking-tight mt-6 mb-2;
 }
 
 .prose ul {
@@ -110,6 +96,10 @@ html {
 
 .prose ol {
   @apply list-decimal pl-6;
+}
+
+.prose li {
+  @apply leading-7;
 }
 
 .prose > :first-child {
