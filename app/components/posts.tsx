@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatDate, getBlogPosts } from "app/blog/utils";
-import { BlurFade } from "src/shared/ui";
+import { BlurFade, SparklesText } from "src/shared/ui";
 
 type Props = {
   viewAll?: boolean;
@@ -41,16 +41,20 @@ export function BlogPosts({ viewAll }: Props) {
               <p className="text-neutral-900 dark:text-neutral-100 tracking-tight">
                 {post.metadata.title}
                 {post.metadata.updatedAt && (
-                  <span className="text-green-600 dark:text-green-400 pl-2 text-xs">
-                    • Updated
-                  </span>
+                  <SparklesText
+                    className="text-green-600 dark:text-green-400 pl-2 text-xs inline"
+                    sparklesCount={6}
+                    text="• Updated"
+                  />
                 )}
                 {isNewPost(
                   post.metadata.updatedAt || post.metadata.publishedAt
                 ) && (
-                  <span className="text-blue-600 dark:text-blue-400 pl-2 text-xs">
-                    • NEW
-                  </span>
+                  <SparklesText
+                    className="text-blue-600 dark:text-blue-400 pl-2 text-xs inline"
+                    sparklesCount={6}
+                    text="• NEW"
+                  />
                 )}
               </p>
             </div>
