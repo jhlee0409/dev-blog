@@ -3,6 +3,8 @@ import { CustomMDX } from "app/components/mdx";
 import { formatDate, getBlogPosts } from "app/blog/utils";
 import { baseUrl } from "app/sitemap";
 import Image from "next/image";
+import { ArrowLeftIcon } from "lucide-react";
+import Link from "next/link";
 
 export async function generateStaticParams() {
   let posts = getBlogPosts();
@@ -86,9 +88,16 @@ export default function Blog({ params }) {
           }),
         }}
       />
+      <Link href="/blog">
+        <div className="hover:bg-neutral-800/10 dark:hover:bg-neutral-100/20 rounded-full p-2 w-fit mb-2 -ml-2">
+          <ArrowLeftIcon />
+        </div>
+      </Link>
+
       <h1 className="title font-semibold text-2xl tracking-tighter">
         {post.metadata.title}
       </h1>
+
       <div className="flex flex-col justify-between mt-2 mb-8 text-sm">
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           {formatDate(post.metadata.publishedAt)}

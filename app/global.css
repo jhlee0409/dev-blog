@@ -167,6 +167,15 @@ table {
 }
 
 @font-face {
+  font-family: "NEXONLv1GothicOTFLight";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@2.1/NEXON Lv1 Gothic OTF Light.woff")
+    format("woff");
+}
+
+@font-face {
   font-family: "NEXONLv1GothicOTFRegular";
   font-style: normal;
   font-weight: 400;
