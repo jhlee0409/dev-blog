@@ -1,42 +1,28 @@
-# Portfolio Blog Starter
+# Dev Blog
 
-This is a porfolio site template complete with a blog. Includes:
+Next.js와 TypeScript로 구축된 개인 기술 블로그입니다.
 
-- MDX and Markdown support
-- Optimized for SEO (sitemap, robots, JSON-LD schema)
-- RSS Feed
-- Dynamic OG images
-- Syntax highlighting
-- Tailwind v4
-- Vercel Speed Insights / Web Analytics
-- Geist font
+## 기술 스택
 
-## Demo
+- **Frontend**: Next.js 15.1.5, React 19.0.0, TypeScript 5.3.3
+- **스타일링**: TailwindCSS 4.0.0-alpha.13
+- **마크다운**: next-mdx-remote
+- **분석**: Vercel Analytics, Speed Insights
+- **배포**: Vercel
 
-https://portfolio-blog-starter.vercel.app
+## 주요 기능
 
-## How to Use
+- 반응형 디자인
+- 마크다운 기반 블로그 포스팅
+- 코드 신택스 하이라이팅
+- RSS 피드 지원
+- SEO 최적화
+- 성능 분석 및 모니터링
 
-You can choose from one of the following two methods to use this repository:
+## 라이선스
 
-### One-Click Deploy
+이 프로젝트는 MIT 라이선스 하에 공개되어 있습니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
 
-Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=vercel-examples):
+## 기반
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/examples/tree/main/solutions/blog&project-name=blog&repository-name=blog)
-
-### Clone and Deploy
-
-Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [pnpm](https://pnpm.io/installation) to bootstrap the example:
-
-```bash
-pnpm create next-app --example https://github.com/vercel/examples/tree/main/solutions/blog blog
-```
-
-Then, run Next.js in development mode:
-
-```bash
-pnpm dev
-```
-
-Deploy it to the cloud with [Vercel](https://vercel.com/templates) ([Documentation](https://nextjs.org/docs/app/building-your-application/deploying)).
+- 이 프로젝트는 [Next.js Portfolio Starter Kit](https://vercel.com/templates/next.js/portfolio-starter-kit)을 기반으로 만들어져 있습니다.
