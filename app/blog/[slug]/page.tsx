@@ -5,6 +5,7 @@ import { baseUrl } from "app/sitemap";
 import Image from "next/image";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
+import Giscus from "app/components/Giscus";
 
 export async function generateStaticParams() {
   let posts = getBlogPosts();
@@ -138,6 +139,14 @@ export default function Blog({ params }) {
       <article className="prose">
         <CustomMDX source={post.content} />
       </article>
+      <div className="w-full h-0.5 bg-black dark:bg-white" />
+      <Giscus
+        repo="jhlee0409/dev-blog"
+        repoId="R_kgDONr9TmQ"
+        category="Announcements"
+        categoryId="DIC_kwDONr9Tmc4CmW3V"
+      />
+      <div className="w-full h-0.5 bg-black dark:bg-white" />
     </section>
   );
 }
