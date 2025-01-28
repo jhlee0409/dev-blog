@@ -1,10 +1,22 @@
 "use client";
-import { HomeIcon, MailIcon, PencilIcon } from "lucide-react";
+import { ArrowUpIcon, HomeIcon, MailIcon, PencilIcon } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+
 import { Dock, DockIcon, HyperText, ScrollProgress } from "src/shared/ui";
 import { cn } from "src/shared/utils";
 
 export function Navbar() {
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 50);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   return (
     <aside className="mb-8 tracking-tight sm:sticky sm:top-4 z-10 -mx-4 rounded-md overflow-hidden">
       <div className="backdrop-blur-md px-4">
@@ -47,6 +59,16 @@ export function Navbar() {
               </a>
             </DockIcon>
           ))}
+          {showScrollTop && (
+            <div>
+              <DockIcon
+                className="hover:bg-black/10 hover:dark:bg-white/10"
+                onClick={() => window.scrollTo({ top: 0 })}
+              >
+                <ArrowUpIcon />
+              </DockIcon>
+            </div>
+          )}
         </Dock>
       </div>
     </aside>
