@@ -38,25 +38,24 @@ export function BlogPosts({ viewAll }: Props) {
                   false
                 )}
               </p>
-              <p className="text-neutral-900 dark:text-neutral-100 tracking-tight">
+              <div className="text-neutral-900 dark:text-neutral-100 tracking-tight">
                 {post.metadata.title}
-                {post.metadata.updatedAt && (
-                  <SparklesText
-                    className="text-green-600 dark:text-green-400 pl-2 text-xs inline"
-                    sparklesCount={6}
-                    text="• Updated"
-                  />
-                )}
-                {isNewPost(
-                  post.metadata.updatedAt || post.metadata.publishedAt
-                ) && (
+                {post.metadata.updatedAt &&
+                  isNewPost(post.metadata.updatedAt) && (
+                    <SparklesText
+                      className="text-green-600 dark:text-green-400 pl-2 text-xs inline"
+                      sparklesCount={6}
+                      text="• Updated"
+                    />
+                  )}
+                {isNewPost(post.metadata.publishedAt) && (
                   <SparklesText
                     className="text-blue-600 dark:text-blue-400 pl-2 text-xs inline"
                     sparklesCount={6}
                     text="• NEW"
                   />
                 )}
-              </p>
+              </div>
             </div>
           </Link>
         </BlurFade>
