@@ -1,5 +1,11 @@
 "use client";
-import { ArrowUpIcon, HomeIcon, MailIcon, PencilIcon } from "lucide-react";
+import {
+  ArrowUpIcon,
+  HomeIcon,
+  MailIcon,
+  PencilIcon,
+  TagIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -102,6 +108,7 @@ const DATA = {
   navbar: [
     { href: "/", icon: HomeIcon, label: "Home" },
     { href: "/blog", icon: PencilIcon, label: "Blog" },
+    { href: "/tags", icon: TagIcon, label: "Tags" },
   ],
   contact: {
     social: {

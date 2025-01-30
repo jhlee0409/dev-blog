@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import Giscus from "app/components/Giscus";
+import { capitalizeFirstLetter } from "src/shared/utils/string";
 
 export async function generateStaticParams() {
   let posts = getBlogPosts();
@@ -120,7 +121,7 @@ export default function Blog({ params }) {
                 className="px-2 py-1 text-sm rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition-colors"
                 itemProp="keywords"
               >
-                #{tag}
+                #{capitalizeFirstLetter(tag)}
               </span>
             ))}
           </div>
