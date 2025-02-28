@@ -1,0 +1,540 @@
+---
+title: "[Javascript] Proxy"
+publishedAt: "2025-02-28"
+summary: "Javascript Proxy"
+tags: "javascript, proxy"
+---
+
+## 1. 서론
+
+웹 애플리케이션에서 데이터 변화를 감지하고 DOM을 업데이트하는 것은 프론트엔드 개발의 핵심 작업이다. 특히 장바구니처럼 사용자의 상호작용에 즉각 반응해야 하는 인터페이스에서는 더욱 중요하다. 하지만 데이터가 많아질수록 변경 사항을 감지하고 화면을 업데이트하는 작업은 점점 더 복잡해지고 성능 이슈를 야기한다.
+
+React, Vue.js 같은 프레임워크들에서는 이러한 데이터 반응성 문제를 효과적으로 해결해준다. 그러나 바닐라 JavaScript로 개발할 때는 어떻게 효율적인 반응형 시스템을 구현할 수 있을까?
+
+JavaScript의 Proxy 객체를 활용해 효율적인 데이터 처리가 가능하다. 장바구니 기능을 예시로, 일반적인 접근 방식과 Proxy를 활용한 방식의 차이와 성능 개선 효과를 살펴볼 것이다.
+
+## 2. Proxy 객체 소개
+
+JavaScript Proxy는 ES6(ES2015)에서 도입된 기능으로, 객체에 대한 기본 동작(속성 조회, 할당, 삭제 등)을 가로채어 사용자 정의 동작으로 재정의할 수 있게 해준다. 쉽게 말해 객체에 접근하는 방식을 "중간에서 관리"하는 역할을 한다.
+
+### 기본 구조
+
+Proxy 객체는 다음과 같이 생성한다
+
+```jsx
+const proxy = new Proxy(target, handler);
+```
+
+여기서:
+
+- `target`: 프록시할 원본 객체
+- `handler`: 동작을 가로채고 재정의하는 메서드들을 포함하는 객체
+
+### 주요 트랩(trap)
+
+Proxy의 핵심은 다양한 "트랩(trap)"을 정의하여 객체의 동작을 가로채는 것이다. 주요 트랩으로는 다음과 같다.
+
+- `get`: 속성 값을 읽을 때 호출됨
+- `set`: 속성 값을 설정할 때 호출됨
+- `deleteProperty`: 속성을 삭제할 때 호출됨
+- `has`: in 연산자가 사용될 때 호출됨
+
+간단한 예제를 통해 Proxy의 기본 동작을 살펴보자
+
+```jsx
+const original = { count: 0 };
+
+const handler = {
+  get(target, prop, receiver) {
+    console.log(`${prop} 속성이 조회됨`);
+    return Reflect.get(target, prop, receiver);
+  },
+  set(target, prop, value, receiver) {
+    console.log(`${prop} 속성이 ${value}로 변경됨`);
+    return Reflect.set(target, prop, value, receiver);
+  },
+};
+
+const proxy = new Proxy(original, handler);
+
+// "count 속성이 조회됨" 출력 후 0 반환
+console.log(proxy.count);
+
+// "count 속성이 1로 변경됨" 출력 후 속성 변경
+proxy.count = 1;
+```
+
+여기서 `set` 트랩은 속성 설정이 성공적으로 완료되었는지를 나타내는 불리언 값을 반환해야 한다. `true`를 반환하면 설정이 성공했음을, `false`를 반환하면 설정이 실패했음을 나타낸다. 이는 특히 strict 모드에서 중요하다.
+
+## 3. Reflect API 소개
+
+ES6에서 Proxy와 함께 도입된 Reflect API는 JavaScript 객체를 조작하기 위한 메서드를 제공하는 내장 객체이다. Reflect의 모든 메서드는 Proxy의 트랩과 1:1로 대응된다.
+
+### Reflect의 주요 메서드
+
+- `Reflect.get(target, prop, receiver)`: 객체의 속성 값을 반환
+- `Reflect.set(target, prop, value, receiver)`: 객체의 속성 값을 설정하고 성공 여부를 불리언으로 반환
+- `Reflect.has(target, prop)`: 객체가 특정 속성을 가지고 있는지 확인 (in 연산자와 동일)
+- `Reflect.deleteProperty(target, prop)`: 객체의 속성을 삭제하고 성공 여부를 반환
+
+### Proxy와 함께 Reflect를 사용하는 이유
+
+Proxy 핸들러에서 Reflect를 사용하면 여러 장점이 있다.
+
+1. **원본 동작 유지**: 핸들러에서 기본 동작을 그대로 수행하면서 추가 작업만 수행할 수 있다.
+2. **성공/실패 정보**: Reflect 메서드는 작업 성공 여부를 불리언으로 반환하므로 수동으로 `true/false`를 반환할 필요가 없다.
+3. **올바른 `this` 바인딩**: `receiver` 매개변수를 통해 메서드 체이닝이나 상속 관계에서도 올바른 `this` 값을 유지한다.
+
+```jsx
+// Reflect를 사용한 더 안전한 Proxy 핸들러
+const handler = {
+  get(target, prop, receiver) {
+    console.log(`${prop} 속성 조회`);
+    return Reflect.get(target, prop, receiver);
+  },
+  set(target, prop, value, receiver) {
+    console.log(`${prop} 속성을 ${value}로 설정`);
+    return Reflect.set(target, prop, value, receiver);
+  },
+};
+```
+
+## 4. 전통적인 방식과 Proxy 방식 비교
+
+장바구니 기능을 구현하는 두 가지 방식을 비교해보자
+
+### 전통적인 방식
+
+```jsx
+function createTraditionalCart() {
+  let cart = {};
+
+  function updateDOM(productIds) {
+    productIds.forEach((id) => {
+      Array.from(
+        document.querySelectorAll(`[data-product-id="${id}"]`)
+      ).forEach((el) => {
+        el.textContent = cart[id];
+      });
+    });
+  }
+
+  return {
+    addItem(productId, count = 1) {
+      // 이전 상태 저장
+      const oldValue = { ...cart };
+
+      // 장바구니 업데이트
+      cart[productId] = (cart[productId] || 0) + count;
+
+      // 변경된 키 찾기
+      const changedIds = [];
+      if (oldValue[productId] !== cart[productId]) {
+        changedIds.push(productId);
+      }
+
+      // DOM 업데이트
+      updateDOM(changedIds);
+    },
+
+    // 여러 상품 업데이트 (대량 업데이트 시 성능 이슈 발생)
+    updateItems(items) {
+      // 이전 상태 저장
+      const oldCart = { ...cart };
+
+      // 장바구니 대량 업데이트
+      items.forEach(({ id, count }) => {
+        cart[id] = (cart[id] || 0) + count;
+      });
+
+      // 변경된 모든 키 찾기
+      const oldKeys = Object.keys(oldCart);
+      const newKeys = Object.keys(cart);
+      const changedKeys = [];
+
+      // 값이 변경된 키 찾기
+      newKeys.forEach((key) => {
+        if (oldCart[key] !== cart[key]) {
+          changedKeys.push(key);
+        }
+      });
+
+      // 새로 추가된 키 찾기
+      newKeys.forEach((key) => {
+        if (!oldKeys.includes(key)) {
+          changedKeys.push(key);
+        }
+      });
+
+      // 중복 제거 및 DOM 업데이트
+      const uniqueChangedKeys = Array.from(new Set(changedKeys));
+      updateDOM(uniqueChangedKeys);
+    },
+
+    getCart() {
+      return cart;
+    },
+  };
+}
+```
+
+### Proxy를 활용한 방식
+
+```jsx
+function createProxyCart() {
+  function updateDOM(productId) {
+    Array.from(
+      document.querySelectorAll(`[data-product-id="${productId}"]`)
+    ).forEach((el) => {
+      el.textContent = cart[productId];
+    });
+  }
+
+  // Proxy 객체 생성 - 속성 변경을 자동으로 감지
+  const cart = new Proxy(
+    {},
+    {
+      get(target, prop, receiver) {
+        // 필요하다면 여기에 로깅이나 추가 로직 구현
+        return Reflect.get(target, prop, receiver);
+      },
+      set(target, prop, value, receiver) {
+        // 속성 설정 및 성공 여부 반환
+        const result = Reflect.set(target, prop, value, receiver);
+
+        // 일반 속성이면 DOM 자동 업데이트
+        if (typeof prop === "string" && !prop.startsWith("_")) {
+          updateDOM(prop);
+        }
+
+        return result;
+      },
+    }
+  );
+
+  return {
+    // 단일 아이템 추가 - Proxy가 자동으로 변경 감지
+    addItem(productId, count = 1) {
+      cart[productId] = (cart[productId] || 0) + count;
+    },
+
+    // 여러 아이템 추가 - 각 변경마다 자동으로 감지됨
+    updateItems(items) {
+      items.forEach(({ id, count }) => {
+        cart[id] = (cart[id] || 0) + count;
+      });
+    },
+
+    getCart() {
+      return cart;
+    },
+  };
+}
+```
+
+### 주요 차이점
+
+1. **코드 복잡성**: 전통적인 방식은 변경 사항을 감지하기 위해 복잡한 비교 로직이 필요하지만, Proxy 방식은 객체 조작을 가로채서 자동으로 변경을 감지한다.
+2. **성능**: 대량의 데이터를 처리할 때 전통적인 방식은 모든 키를 순회해야 하므로 O(n) 또는 심지어 O(n²)에 가까운 시간 복잡도를 가질 수 있다. 반면 Proxy 방식은 변경된 속성에 대해서만 처리하므로 실질적으로 O(1)에 가깝다.
+3. **확장성**: Proxy 방식은 필요에 따라 다양한 트랩을 추가하여 기능을 확장하기 쉽다. 예를 들어 로깅, 유효성 검사 등을 쉽게 추가할 수 있다.
+
+## 5. 실제 사용 예시
+
+이제 실제 웹 페이지에서 장바구니 기능을 어떻게 구현할 수 있는지 살펴보자
+
+```jsx
+// HTML 구조:
+// <div class="cart-container">
+//   <div class="products">
+//     <div class="product">
+//       <h3>노트북</h3>
+//       <p>가격: 1,200,000원</p>
+//       <button data-product-id="laptop">장바구니에 추가</button>
+//     </div>
+//     <div class="product">
+//       <h3>스마트폰</h3>
+//       <p>가격: 800,000원</p>
+//       <button data-product-id="smartphone">장바구니에 추가</button>
+//     </div>
+//     <div class="product">
+//       <h3>무선이어폰</h3>
+//       <p>가격: 180,000원</p>
+//       <button data-product-id="earbuds">장바구니에 추가</button>
+//     </div>
+//   </div>
+//
+//   <div class="cart-summary">
+//     <h2>장바구니</h2>
+//     <ul class="cart-items">
+//       <li data-product-id="laptop">노트북: <span data-product-id="laptop">0</span>개</li>
+//       <li data-product-id="smartphone">스마트폰: <span data-product-id="smartphone">0</span>개</li>
+//       <li data-product-id="earbuds">무선이어폰: <span data-product-id="earbuds">0</span>개</li>
+//     </ul>
+//     <button id="checkout">결제하기</button>
+//   </div>
+// </div>
+
+// Proxy 장바구니 초기화 및 사용
+function initializeShoppingCart() {
+  // Proxy 장바구니 생성
+  const cart = createProxyCart();
+
+  // 제품 정보
+  const products = {
+    laptop: { name: "노트북", price: 1200000 },
+    smartphone: { name: "스마트폰", price: 800000 },
+    earbuds: { name: "무선이어폰", price: 180000 },
+  };
+
+  // 버튼 이벤트 리스너 등록
+  document.querySelectorAll(".product button").forEach((button) => {
+    const productId = button.dataset.productId;
+
+    button.addEventListener("click", () => {
+      // 장바구니에 아이템 추가 - Proxy가 자동으로 DOM 업데이트
+      cart.addItem(productId, 1);
+
+      // 추가 성공 메시지
+      alert(`${products[productId].name}이(가) 장바구니에 추가되었습니다.`);
+    });
+  });
+
+  // 결제 버튼 이벤트
+  document.getElementById("checkout").addEventListener("click", () => {
+    const cartItems = cart.getCart();
+    let totalPrice = 0;
+    let message = "장바구니 내역:\n\n";
+
+    // 장바구니 내역 생성
+    Object.keys(cartItems).forEach((id) => {
+      if (cartItems[id] > 0) {
+        const itemTotal = products[id].price * cartItems[id];
+        message += `${products[id].name}: ${
+          cartItems[id]
+        }개 - ${itemTotal.toLocaleString()}원\n`;
+        totalPrice += itemTotal;
+      }
+    });
+
+    message += `\n총 결제금액: ${totalPrice.toLocaleString()}원`;
+    alert(message);
+  });
+
+  // 프로모션 버튼 (벌크 업데이트 예시)
+  document.querySelector(".cart-summary").insertAdjacentHTML(
+    "beforeend",
+    `
+    <button id="promotion">프로모션: 전체 +1</button>
+  `
+  );
+
+  document.getElementById("promotion").addEventListener("click", () => {
+    // 모든 제품을 한번에 업데이트 - 각각 자동으로 DOM 업데이트됨
+    cart.updateItems([
+      { id: "laptop", count: 1 },
+      { id: "smartphone", count: 1 },
+      { id: "earbuds", count: 1 },
+    ]);
+
+    alert("모든 상품이 1개씩 추가되었습니다!");
+  });
+
+  return cart;
+}
+
+// 페이지 로드 시 초기화
+window.addEventListener("DOMContentLoaded", () => {
+  const cart = initializeShoppingCart();
+
+  // 콘솔 테스트용
+  window.cart = cart;
+});
+```
+
+이 예제에서는 사용자가 제품을 추가할 때마다 Proxy의 `set` 트랩이 자동으로 호출되어 DOM을 업데이트한다. 특히 "프로모션: 전체 +1" 기능에서 여러 제품을 한 번에 업데이트할 때도 Proxy 덕분에 각 속성마다 정확히 한 번씩만 DOM이 업데이트된다.
+
+## 6. 성능 비교
+
+전통적인 방식과 Proxy 방식의 성능 차이를 비교해보자
+
+```jsx
+function performanceTest() {
+  const traditional = createTraditionalCart();
+  const proxy = createProxyCart();
+
+  // DOM 업데이트 함수를 빈 함수로 오버라이드하여 순수 JS 성능만 측정
+  // (실제 DOM 조작은 브라우저마다 다를 수 있으므로)
+  traditional.updateDOM = () => {};
+  proxy.updateDOM = () => {};
+
+  console.log("=== 단일 아이템 추가 성능 테스트 ===");
+
+  // 전통적 방식 성능 측정
+  console.time("Traditional (단일 아이템)");
+  for (let i = 0; i < 10000; i++) {
+    traditional.addItem(`product-${i}`, 1);
+  }
+  console.timeEnd("Traditional (단일 아이템)");
+
+  // Proxy 방식 성능 측정
+  console.time("Proxy (단일 아이템)");
+  for (let i = 0; i < 10000; i++) {
+    proxy.addItem(`product-${i}`, 1);
+  }
+  console.timeEnd("Proxy (단일 아이템)");
+
+  console.log("\n=== 대량 업데이트 성능 테스트 ===");
+
+  // 대량 업데이트 테스트용 데이터 준비
+  const items = [];
+  for (let i = 0; i < 10000; i++) {
+    items.push({ id: `bulk-${i}`, count: 1 });
+  }
+
+  // 전통적 방식 대량 업데이트 성능 측정
+  console.time("Traditional (대량 업데이트)");
+  traditional.updateItems(items);
+  console.timeEnd("Traditional (대량 업데이트)");
+
+  // Proxy 방식 대량 업데이트 성능 측정
+  console.time("Proxy (대량 업데이트)");
+  proxy.updateItems(items);
+  console.timeEnd("Proxy (대량 업데이트)");
+}
+
+// 성능 테스트 실행
+performanceTest();
+```
+
+실제 테스트 결과
+
+<ImageGallery
+  fullWidth
+  images={[
+    {
+      src: "https://btkg229edrjiuzmb.public.blob.vercel-storage.com/javascript-proxy/performance-N4bFGoVrV7t0SVgD2ftHlNJ2W8oqzq.png",
+      alt: "성능 비교",
+    },
+  ]}
+/>
+
+데이터 크기가 커질수록 성능 차이는 더 극적으로 벌어진다. 특히 중요한 점은 전통적인 방식은 데이터 크기에 따라 성능이 선형 이상으로 저하되는 반면, Proxy 방식은 거의 선형적인 성능을 유지한다는 것이다.
+
+## 7. 유의 사항
+
+### 중첩 객체 처리
+
+기본적으로 Proxy는 최상위 속성 변경만 감지한다. 중첩된 객체의 변경을 감지하려면 재귀적으로 Proxy를 적용해야 한다.
+
+```jsx
+function deepProxy(obj, handler) {
+  if (typeof obj !== "object" || obj === null) return obj;
+
+  // 객체의 각 속성에 대해 재귀적으로 Proxy 적용
+  for (const key of Object.keys(obj)) {
+    if (typeof obj[key] === "object" && obj[key] !== null) {
+      obj[key] = deepProxy(obj[key], handler);
+    }
+  }
+
+  return new Proxy(obj, handler);
+}
+```
+
+### 디버깅
+
+개발자 도구에서 Proxy 객체를 검사할 때 내부 구조가 복잡하게 표시될 수 있어 디버깅이 어려울 수 있다. 필요에 따라 `console.log(JSON.parse(JSON.stringify(proxyObject)))`와 같은 방식으로 순수 객체로 변환하여 확인할 수 있다.
+
+### 메모리 사용량
+
+Proxy는 원본 객체 외에 추가 메모리를 사용한다. 매우 큰 객체나 많은 수의 객체를 프록시할 때는 메모리 사용량을 고려해야 한다.
+
+## 8. 확장 활용: 유효성 검사
+
+Proxy의 장점 중 하나는 객체 조작에 유효성 검사를 쉽게 추가할 수 있다는 점이다:
+
+```jsx
+function createValidatedCart() {
+  // 유효성 검사 규칙
+  const validators = {
+    // 수량은 항상 0 이상이어야 함
+    isValidQuantity: (value) => typeof value === "number" && value >= 0,
+  };
+
+  function updateDOM(productId) {
+    Array.from(
+      document.querySelectorAll(`[data-product-id="${productId}"]`)
+    ).forEach((el) => {
+      el.textContent = cart[productId];
+    });
+  }
+
+  const cart = new Proxy(
+    {},
+    {
+      set(target, prop, value, receiver) {
+        // 유효성 검사
+        if (typeof prop === "string" && !prop.startsWith("_")) {
+          if (!validators.isValidQuantity(value)) {
+            console.error(
+              `유효하지 않은 수량: ${value}. 수량은 0 이상이어야 합니다.`
+            );
+            return false; // 설정 거부
+          }
+        }
+
+        // 속성 설정 및 성공 여부 반환
+        const result = Reflect.set(target, prop, value, receiver);
+
+        // 설정이 성공했고 일반 속성인 경우에만 DOM 업데이트
+        if (result && typeof prop === "string" && !prop.startsWith("_")) {
+          updateDOM(prop);
+        }
+
+        return result;
+      },
+    }
+  );
+
+  return {
+    addItem(productId, count = 1) {
+      if (count <= 0) {
+        console.error("추가하려는 수량은 0보다 커야 합니다.");
+        return;
+      }
+
+      cart[productId] = (cart[productId] || 0) + count;
+    },
+
+    removeItem(productId, count = 1) {
+      if (!cart[productId] || cart[productId] < count) {
+        console.error("제거하려는 수량이 현재 수량보다 많습니다.");
+        return;
+      }
+
+      cart[productId] -= count;
+    },
+
+    getCart() {
+      return cart;
+    },
+  };
+}
+```
+
+이처럼 Proxy를 사용하면 데이터 조작의 유효성을 쉽게 검사하고 엄격하게 제어할 수 있다.
+
+## 9. 결론
+
+JavaScript Proxy와 Reflect는 객체의 동작을 가로채고 재정의할 수 있는 강력한 기능이다. 특히 반응형 데이터 처리가 필요한 웹 애플리케이션에서 그 효용성이 두드러진다.
+
+장바구니 예제에서 보았듯이, 전통적인 방식은 데이터 크기가 커질수록 성능이 급격히 저하되지만, Proxy를 사용하면 일정한 성능을 유지할 수 있다.
+
+물론 브라우저 호환성이나 중첩 객체 처리와 같은 고려사항이 있지만, 이러한 제약을 이해하고 적절히 대응한다면 Proxy와 Reflect는 현대 웹 개발에서 매우 유용한 도구가 될 수 있다.
+
+바닐라 JavaScript로 복잡한 UI를 구현해야 하거나, 프레임워크 내부 동작 원리를 이해하고 싶다면, Proxy와 Reflect에 대한 이해는 큰 도움이 될 것이다.
+
+## 참고 자료
+
+- [MDN Web Docs: Proxy](https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/Proxy)
+- [MDN Web Docs: Reflect](https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/Reflect)
