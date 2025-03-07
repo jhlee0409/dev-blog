@@ -1,0 +1,649 @@
+---
+title: "[Javascript] 시나브로 자바스크립트 4주차 이모저모 - Array 메소드편"
+publishedAt: "2025-03-07"
+summary: "시나브로 자바스크립트 4주차를 들으면서 정리했던 내용들"
+tags: "javascript, inflearn, sinabro, array, map, reduce"
+---
+
+# JavaScript Array 메소드 - Map과 Reduce
+
+> 배열 메소드의 올바른 사용법과 성능 최적화 전략에 대해 알아보자
+
+## 들어가며
+
+JavaScript에서 배열 처리에 사용되는 여러 메소드들이 있다.. 특히 `map()`과 `reduce()` 메소드는 함수형 프로그래밍 패러다임을 활용한 배열 처리의 강력한 도구이다. 이 글에서는 두 메소드의 올바른 사용법과 성능 최적화 전략에 대해 자세히 알아본다.
+
+## Map 메소드
+
+### 기본 사용법
+
+`map()` 메소드는 원본 배열의 각 요소를 변환하여 새로운 배열을 반환한다. 원본 배열은 변경되지 않는다.
+
+```javascript
+array.map(callback(currentValue, index, array), thisArg);
+```
+
+**콜백 함수의 파라미터**:
+
+1. **currentValue**: 현재 처리 중인 배열의 요소
+2. **index** (선택적): 현재 처리 중인 요소의 인덱스
+3. **array** (선택적): map()을 호출한 원본 배열
+4. **thisArg** (선택적): 콜백 함수 내에서 this로 사용할 값
+
+간단한 예제:
+
+```javascript
+const numbers = [1, 2, 3, 4, 5];
+const doubled = numbers.map((num) => num * 2);
+console.log(doubled); // [2, 4, 6, 8, 10]
+```
+
+### 실전 예제
+
+영화 정보가 담긴 배열에서 추가 속성을 생성해야 하는 상황을 생각해보자.
+
+```javascript
+const movies = [
+  {
+    title: "Rent",
+    year: 2005,
+    genres: ["Musical", "Drama"],
+  },
+  {
+    title: "Tick",
+    year: 2011,
+    genres: ["Biography", "Drama"],
+  },
+];
+```
+
+이 데이터에 `genre` 속성을 추가하고, `genres` 배열을 문자열로 변환해보자.
+
+### 스프레드 연산자와 속성 복사
+
+이 작업을 수행하는 두 가지 방법이 있다.
+
+**방법 1: 모든 속성을 명시적으로 나열**
+
+```javascript
+const result1 = movies.map((movie) => {
+  return {
+    title: movie.title,
+    year: movie.year,
+    genres: movie.genres,
+    genre: movie.genres.join(" / "),
+  };
+});
+```
+
+**방법 2: 스프레드 연산자 사용**
+
+```javascript
+const result2 = movies.map((movie) => {
+  return {
+    ...movie,
+    genre: movie.genres.join(" / "),
+  };
+});
+```
+
+두 방법 모두 동일한 결과를 반환하지만, 동작 방식에는 차이가 있다.
+
+### 구현 방식별 차이점
+
+1. **코드 작성 방식**
+
+   - 첫 번째 방식은 모든 속성을 명시적으로 나열한다.
+   - 두 번째 방식은 스프레드 연산자를 사용해 기존 객체의 모든 속성을 새 객체에 복사한다.
+
+2. **유지보수성**
+
+   - 첫 번째 방식은 필요한 속성만 선택할 수 있어 더 명확할 수 있다.
+   - 두 번째 방식은 코드가 더 간결하고, 원본 객체에 속성이 추가되더라도 코드를 수정할 필요가 없다.
+
+3. **성능**
+   - 일반적인 경우 성능 차이는 미미하다.
+   - 객체에 많은 속성이 있을 경우 첫 번째 방식이 더 효율적일 수 있다.
+
+**추천 방식**: 기존 속성을 모두 유지하면서 추가 속성만 다루는 경우 스프레드 방식이 더 적합하다.
+
+- **간결성**: 코드가 짧고 읽기 쉽다.
+- **유지보수성**: 원본 객체 구조가 변경되어도 코드 수정이 필요 없다.
+- **오류 가능성 감소**: 속성을 누락할 가능성이 없다.
+- **의도 명확성**: "원본 객체의 모든 속성을 유지하며 새 속성을 추가한다"는 의도가 명확하다.
+
+## Reduce 메소드
+
+### 기본 구문
+
+`reduce()` 메소드는 배열의 각 요소에 대해 주어진 리듀서(reducer) 함수를 실행하고, 하나의 결과값을 반환한다.
+
+```javascript
+array.reduce(callback(accumulator, currentValue, index, array), initialValue);
+```
+
+### 콜백 함수의 파라미터
+
+1. **accumulator**: 누적값. 이전 반복에서 반환된 값이 저장된다.
+2. **currentValue**: 현재 처리 중인 요소의 값.
+3. **index** (선택적): 현재 처리 중인 요소의 인덱스.
+4. **array** (선택적): reduce()를 호출한 원본 배열.
+
+### initialValue (선택적)
+
+- 첫 번째 콜백 호출에서 accumulator로 사용되는 값이다.
+- 제공하지 않으면 배열의 첫 번째 요소가 초기 accumulator가 되고, currentValue는 두 번째 요소부터 시작한다.
+- 빈 배열에서 initialValue 없이 reduce()를 호출하면 오류가 발생한다.
+  (`TypeError: Reduce of empty array with no initial value`)
+- 안전하고 의도된 동작을 보장하기 위해 항상 initialValue를 제공하는 것이 좋은 습관이다.
+
+### 주요 특징과 활용
+
+- **다양한 출력 타입**: 배열을 숫자, 문자열, 객체, 새 배열 등 어떤 형태로든 변환 가능
+- **체이닝 대체**: 여러 배열 메소드를 체이닝하는 대신 하나의 reduce로 대체 가능
+- **조기 종료 불가**: 모든 배열 요소를 순회한다 (중간에 중단할 수 없음)
+
+### 언제 Reduce를 사용해야 할까?
+
+1. **입/출력 데이터 타입이 다를 때**
+
+   ```javascript
+   // 배열을 객체로 변환 (id를 키로 사용)
+   const arrayToObject = users.reduce((acc, user) => {
+     acc[user.id] = user;
+     return acc;
+   }, {});
+   ```
+
+2. **누적 계산이 필요할 때**:
+
+   - 합계, 평균, 최대/최소값 등을 구할 때 사용한다.
+
+3. **복잡한 데이터 변환 과정이 필요할 때**:
+
+   - 여러 단계의 필터링, 그룹화, 변환이 함께 필요한 경우 사용한다.
+
+4. **체이닝을 줄이고 싶을 때**:
+   - `map().filter().sort()` 같은 체이닝 대신 하나의 reduce로 처리할 때 사용한다.
+
+### 실전 예제
+
+영화를 장르별로 그룹화하는 예제를 살펴보자.
+
+```javascript
+// 영화를 장르별로 그룹화
+const moviesByGenre = movies.reduce((acc, movie) => {
+  movie.genres.forEach((genre) => {
+    if (!acc[genre]) acc[genre] = [];
+    acc[genre].push(movie);
+  });
+  return acc;
+}, {});
+```
+
+결과는 다음과 같다:
+
+```javascript
+{
+  "Musical": [{ title: "Rent", year: 2005, genres: ["Musical", "Drama"] }],
+  "Drama": [
+    { title: "Rent", year: 2005, genres: ["Musical", "Drama"] },
+    { title: "Tick", year: 2011, genres: ["Biography", "Drama"] }
+  ],
+  "Biography": [{ title: "Tick", year: 2011, genres: ["Biography", "Drama"] }]
+}
+```
+
+## 성능 비교
+
+> 참고: 다음 성능 측정 결과는 Node.js v20.10.0 환경에서 테스트되었다. 결과는 하드웨어, 브라우저, JavaScript 엔진 등 실행 환경에 따라 달라질 수 있다.
+
+배열 처리 메소드의 성능을 실제로 비교해보자.
+
+### 메소드 체이닝 vs. Reduce
+
+대량의 데이터(100만 개 항목)를 처리할 때 다양한 접근 방식의 성능을 비교해보자. 아래 코드로 테스트를 수행했다:
+
+```javascript
+// 대량의 테스트 데이터 생성
+const generateLargeData = (size) => {
+  return Array.from({ length: size }, (_, index) => ({
+    category: ["A", "B", "C", "D"][Math.floor(Math.random() * 4)],
+    id: index,
+    isActive: Math.random() > 0.3,
+    value: Math.floor(Math.random() * 1000),
+  }));
+};
+
+// 데이터 생성 (100만 항목)
+const data = generateLargeData(1000000);
+
+console.log(`테스트 데이터 크기: ${data.length}개 항목`);
+
+// 예제 1: 활성 상태인 항목 중 카테고리가 'A'인 항목들의 value 합계 계산
+console.log("\n예제 1: 조건에 맞는 항목의 합계 계산");
+
+// 방법 1: 메소드 체이닝 (최적화하지 않은 버전)
+console.time("체이닝 (비최적화)");
+const resultChaining1 = data
+  .filter((item) => item.isActive)
+  .filter((item) => item.category === "A")
+  .map((item) => item.value)
+  .reduce((sum, value) => sum + value, 0);
+console.timeEnd("체이닝 (비최적화)");
+
+// 방법 2: 메소드 체이닝 (최적화 버전)
+console.time("체이닝 (최적화)");
+const resultChaining2 = data
+  .filter((item) => item.isActive && item.category === "A")
+  .reduce((sum, item) => sum + item.value, 0);
+console.timeEnd("체이닝 (최적화)");
+
+// 방법 3: 단일 reduce 사용
+console.time("단일 reduce");
+const resultReduce = data.reduce((sum, item) => {
+  if (item.isActive && item.category === "A") {
+    return sum + item.value;
+  }
+  return sum;
+}, 0);
+console.timeEnd("단일 reduce");
+
+// 결과 확인
+console.log("체이닝 (비최적화) 결과:", resultChaining1);
+console.log("체이닝 (최적화) 결과:", resultChaining2);
+console.log("단일 reduce 결과:", resultReduce);
+
+// 예제 2: 카테고리별 활성 항목의 value 합계를 객체로 반환
+console.log("\n예제 2: 카테고리별 합계 계산");
+
+// 방법 1: 체이닝 방식 (비최적화)
+console.time("복합 체이닝 (비최적화)");
+const activeItems = data.filter((item) => item.isActive);
+const categories = [...new Set(activeItems.map((item) => item.category))];
+const categoryTotals1 = categories.reduce((result, category) => {
+  result[category] = activeItems
+    .filter((item) => item.category === category)
+    .reduce((sum, item) => sum + item.value, 0);
+  return result;
+}, {});
+console.timeEnd("복합 체이닝 (비최적화)");
+
+// 방법 2: 체이닝 방식 (최적화)
+console.time("복합 체이닝 (최적화)");
+const categoryTotals2 = data
+  .filter((item) => item.isActive)
+  .reduce((result, item) => {
+    if (!result[item.category]) {
+      result[item.category] = 0;
+    }
+    result[item.category] += item.value;
+    return result;
+  }, {});
+console.timeEnd("복합 체이닝 (최적화)");
+
+// 방법 3: 단일 reduce만 사용
+console.time("복합 단일 reduce");
+const categoryTotalsReduce = data.reduce((result, item) => {
+  if (item.isActive) {
+    if (!result[item.category]) {
+      result[item.category] = 0;
+    }
+    result[item.category] += item.value;
+  }
+  return result;
+}, {});
+console.timeEnd("복합 단일 reduce");
+```
+
+실행 결과:
+
+```text
+예제 1: 조건에 맞는 항목의 합계 계산
+체이닝 (비최적화): 21.243ms
+체이닝 (최적화): 13.388ms
+단일 reduce: 7.668ms
+
+예제 2: 카테고리별 합계 계산
+복합 체이닝 (비최적화): 54.133ms
+복합 체이닝 (최적화): 26.637ms
+복합 단일 reduce: 19.557ms
+```
+
+> 결론: 복잡한 데이터 처리에서는 단일 reduce가 일반적으로 더 빠르다. 하지만 성능 차이는 실행 환경(브라우저, Node.js 버전 등)에 따라 달라질 수 있다.
+
+### Push vs. 스프레드 연산자
+
+배열에 요소를 추가할 때 두 방식의 성능 차이를 알아보자. 다음 코드로 테스트했다:
+
+```javascript
+// 성능 테스트를 위한 대량의 데이터 생성
+const generateTestData = (size) => {
+  return Array.from({ length: size }, (_, index) => ({
+    id: index,
+    value: Math.random() * 1000,
+    text: `Item ${index}`,
+    isValid: index % 3 === 0,
+  }));
+};
+
+// 테스트 데이터 크기
+const testSizes = [10000, 100000, 500000];
+
+testSizes.forEach((size) => {
+  console.log(`\n==== 테스트 크기: ${size.toLocaleString()} 항목 ====`);
+  const data = generateTestData(size);
+
+  // 테스트 1: 조건에 맞는 항목만 배열에 포함 (filter와 유사한 기능)
+  console.log("\n----- 테스트 1: 조건부 필터링 -----");
+
+  // Push 방식
+  console.time("1. Push 방식");
+  const resultPush = data.reduce((acc, item) => {
+    if (item.isValid) {
+      acc.push(item);
+    }
+    return acc;
+  }, []);
+  console.timeEnd("1. Push 방식");
+
+  // Spread 방식
+  console.time("2. Spread 방식");
+  const resultSpread = data.reduce((acc, item) => {
+    return item.isValid ? [...acc, item] : acc;
+  }, []);
+  console.timeEnd("2. Spread 방식");
+
+  // 결과 검증
+  console.log(`결과 배열 길이: ${resultPush.length}`);
+  console.log(
+    `두 결과가 동일한가: ${resultPush.length === resultSpread.length}`
+  );
+
+  // ========================================================================
+
+  // 테스트 2: 모든 항목을 변환하여 새 배열 생성 (map과 유사한 기능)
+  console.log("\n----- 테스트 2: 모든 항목 변환 -----");
+
+  // Push 방식
+  console.time("1. Push 방식");
+  const transformedPush = data.reduce((acc, item) => {
+    acc.push({
+      id: item.id,
+      formattedValue: `$${item.value.toFixed(2)}`,
+      category: item.isValid ? "valid" : "invalid",
+    });
+    return acc;
+  }, []);
+  console.timeEnd("1. Push 방식");
+
+  // Spread 방식
+  console.time("2. Spread 방식");
+  const transformedSpread = data.reduce((acc, item) => {
+    return [
+      ...acc,
+      {
+        id: item.id,
+        formattedValue: `$${item.value.toFixed(2)}`,
+        category: item.isValid ? "valid" : "invalid",
+      },
+    ];
+  }, []);
+  console.timeEnd("2. Spread 방식");
+
+  console.log(`결과 배열 길이: ${transformedPush.length}`);
+
+  // ========================================================================
+
+  // 테스트 3: 배열 분할 (특정 크기의 청크로 나누기)
+  console.log("\n----- 테스트 3: 배열 청킹 -----");
+  const chunkSize = 1000;
+
+  // Push 방식
+  console.time("1. Push 방식");
+  const chunksPush = data.reduce((chunks, item, index) => {
+    const chunkIndex = Math.floor(index / chunkSize);
+
+    if (!chunks[chunkIndex]) {
+      chunks[chunkIndex] = [];
+    }
+
+    chunks[chunkIndex].push(item);
+    return chunks;
+  }, []);
+  console.timeEnd("1. Push 방식");
+
+  // Spread 방식
+  console.time("2. Spread 방식");
+  const chunksSpread = data.reduce((chunks, item, index) => {
+    const chunkIndex = Math.floor(index / chunkSize);
+
+    if (!chunks[chunkIndex]) {
+      chunks[chunkIndex] = [];
+    }
+
+    chunks[chunkIndex] = [...chunks[chunkIndex], item];
+    return chunks;
+  }, []);
+  console.timeEnd("2. Spread 방식");
+
+  console.log(`청크 개수: ${chunksPush.length}`);
+
+  // ========================================================================
+
+  // 메모리 사용량 비교 (Node.js에서만 정확함)
+  try {
+    if (typeof process !== "undefined" && process.memoryUsage) {
+      console.log("\n----- 메모리 사용량 -----");
+      console.log(
+        `초기: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`
+      );
+
+      // 강제 가비지 컬렉션 (Node.js에서)
+      if (global.gc) {
+        global.gc();
+        console.log(
+          `GC 후: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`
+        );
+      }
+    }
+  } catch (e) {
+    console.log("메모리 측정은 Node.js에서만 가능합니다.");
+  }
+});
+```
+
+실행 결과:
+
+**10,000개 항목 처리 시:**
+
+```text
+----- 테스트 1: 조건부 필터링 -----
+1. Push 방식: 0.582ms
+2. Spread 방식: 6.308ms
+결과 배열 길이: 3334
+두 결과가 동일한가: true
+
+----- 테스트 2: 모든 항목 변환 -----
+1. Push 방식: 1.500ms
+2. Spread 방식: 39.152ms
+결과 배열 길이: 10000
+
+----- 테스트 3: 배열 청킹 -----
+1. Push 방식: 0.772ms
+2. Spread 방식: 4.342ms
+청크 개수: 10
+
+----- 메모리 사용량 -----
+초기: 7MB
+GC 후: 6MB
+```
+
+**100,000개 항목 처리 시:**
+
+```text
+----- 테스트 1: 조건부 필터링 -----
+1. Push 방식: 0.772ms
+2. Spread 방식: 1.376s
+결과 배열 길이: 33334
+두 결과가 동일한가: true
+
+----- 테스트 2: 모든 항목 변환 -----
+1. Push 방식: 8.321ms
+2. Spread 방식: 11.174s
+결과 배열 길이: 100000
+
+----- 테스트 3: 배열 청킹 -----
+1. Push 방식: 1.552ms
+2. Spread 방식: 35.95ms
+청크 개수: 100
+
+----- 메모리 사용량 -----
+초기: 95MB
+GC 후: 32MB
+```
+
+**500,000개 항목 처리 시:**
+
+> 500,000개의 경우 많은 테스트를 해보지 못함
+
+```text
+----- 테스트 1: 조건부 필터링 -----
+1. Push 방식: 3.48ms
+2. Spread 방식: 29.570s
+결과 배열 길이: 166667
+두 결과가 동일한가: true
+
+----- 테스트 2: 모든 항목 변환 -----
+1. Push 방식: 45.211ms
+2. Spread 방식: 6:05.839 (m:ss.mmm)
+결과 배열 길이: 500000
+
+----- 테스트 3: 배열 청킹 -----
+1. Push 방식: 5.473ms
+2. Spread 방식: 187.348ms
+청크 개수: 500
+
+----- 메모리 사용량 -----
+초기: 515MB
+GC 후: 149MB
+```
+
+> 결론: 대용량 데이터 처리 시 push 방식이 압도적으로 빠르다. 하지만 소규모 데이터(수백 개 이하)에서는 그 차이가 크게 체감되지 않을 수 있으며, 코드 가독성을 위해 스프레드 연산자를 사용하는 것도 합리적인 선택일 수 있다.
+
+## 가비지 컬렉션(GC)과 배열 처리
+
+JavaScript의 가비지 컬렉션은 메모리 관리에 중요한 역할을 한다. 배열 메소드 사용 방식에 따라 GC 동작과 메모리 사용 패턴이 크게 달라질 수 있다.
+
+### 스프레드 연산자와 GC의 관계
+
+스프레드 연산자(`...`)를 사용하여 배열을 조작할 때, 매 연산마다 새로운 배열이 생성되고 이전 배열은 GC의 대상이 된다.
+
+```javascript
+// 스프레드 방식
+const resultSpread = data.reduce((acc, item) => {
+  return [...acc, item]; // 매번 새 배열 생성
+}, []);
+```
+
+이 방식은 다음과 같은 영향을 미친다:
+
+1. **메모리 사용량 증가**: 일시적으로 많은 메모리를 사용한다.
+2. **GC 부하 증가**: 가비지 컬렉터가 더 자주, 더 많은 작업을 수행해야 한다.
+3. **성능 저하 가능성**: GC가 실행될 때 JavaScript 실행이 잠시 중단될 수 있다(특히 대규모 메모리 정리 시).
+
+### Push 메소드와 GC의 관계
+
+반면, `push()` 메소드는 동일한 배열 객체를 계속 사용하므로 추가 메모리 할당이나 GC가 거의 필요하지 않다.
+
+```javascript
+// Push 방식
+const resultPush = data.reduce((acc, item) => {
+  acc.push(item); // 동일한 배열 객체 재사용
+  return acc;
+}, []);
+```
+
+이 방식의 장점:
+
+1. **안정적인 메모리 사용**: 단일 배열 객체만 유지한다.
+2. **GC 부하 감소**: 임시 객체가 적게 생성되어 GC 작업이 줄어든다.
+3. **성능 안정성**: GC로 인한 성능 저하가 적다.
+
+스프레드 방식은 처리 과정에서 메모리 사용량이 크게 증가했다가 GC 후에 감소한다. 반면 push 방식은 메모리 사용이 일정하게 유지된다.
+
+### 실제 애플리케이션에 미치는 영향
+
+1. **웹 애플리케이션 응답성**: GC가 빈번하게 실행되면 UI 스레드가 차단될 수 있어 사용자 경험이 저하될 수 있다.
+2. **모바일 기기**: 제한된 메모리를 가진 모바일 기기에서는 메모리 효율이 더욱 중요하다.
+3. **대규모 데이터 처리**: 데이터 분석, 시각화 등 대량의 데이터를 다루는 애플리케이션에서 차이가 두드러진다.
+
+## 최적화 전략
+
+성능 테스트 결과와 GC 영향을 고려하여 다음과 같은 최적화 전략을 적용할 수 있다:
+
+1. **reduce와 push 조합하기**: 배열 결과를 반환하는 reduce 내에서는 스프레드 대신 push 사용하기
+
+   ```javascript
+   // 좋음
+   const filtered = data.reduce((acc, item) => {
+     if (someCondition(item)) {
+       acc.push(transformItem(item));
+     }
+     return acc;
+   }, []);
+
+   // 피할 것
+   const filtered = data.reduce((acc, item) => {
+     if (someCondition(item)) {
+       return [...acc, transformItem(item)];
+     }
+     return acc;
+   }, []);
+   ```
+
+2. **메소드 체이닝 최적화**: 여러 번 필터링할 경우 조건을 결합하기
+
+   ```javascript
+   // 일반적으로 좋음
+   const result = data
+     .filter((item) => condition1(item) && condition2(item))
+     .map((item) => transform(item));
+
+   // 일반적으로 피할 것
+   const result = data
+     .filter((item) => condition1(item))
+     .filter((item) => condition2(item))
+     .map((item) => transform(item));
+   ```
+
+   > 참고: 첫 번째 조건(condition1)이 복잡하고 계산 비용이 크며, 많은 항목을 필터링하는 반면, 두 번째 조건(condition2)이 간단하다면 별도의 filter 체인이 더 효율적일 수 있다. 각 상황에 맞게 판단해야 한다.
+
+3. **적절한 메소드 선택**: 용도에 맞게 메소드 선택하기
+
+   - 단순 변환: `map`
+   - 필터링: `filter`
+   - 복잡한 변환/계산: `reduce`
+
+4. **메모리 사용량 고려**: 대용량 데이터 처리 시 메모리 사용량이 중요할 수 있다.
+   - 스프레드 연산은 새 배열을 계속 생성하므로 메모리 사용량이 높다.
+   - push는 동일한 배열을 재사용하므로 메모리 효율이 좋다.
+
+## 마치며
+
+JavaScript 배열 메소드는 데이터 처리의 핵심 도구다. 각 메소드의 특성과 성능 영향을 이해하면 더 효율적인 코드를 작성할 수 있다.
+
+주요 포인트:
+
+- 간단한 변환은 `map`을 사용
+- 데이터 형태 변환이나 복잡한 처리는 `reduce`가 효율적
+- 대용량 데이터 처리 시 스프레드 연산자보다 `push`가 성능적으로 유리
+- 메소드 체이닝 시 필터 조건을 가능한 한 결합하여 처리
+
+여러분의 프로젝트에서 이런 최적화 전략을 적용해보고, 실제 성능 향상을 경험해보기 바란다.
+
+## 참고 자료
+
+- [MDN Web Docs - Array.prototype.map()](https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/Array/map)
+- [MDN Web Docs - Array.prototype.reduce()](https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce)
+- [JavaScript Performance Optimization](https://www.smashingmagazine.com/2012/11/writing-fast-memory-efficient-javascript/)
