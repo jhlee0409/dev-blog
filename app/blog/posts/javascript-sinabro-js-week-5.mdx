@@ -20,14 +20,18 @@ npm 라이브러리를 개발하고 배포하는 과정에 대한 이론적 내�
 
 ### 1.1 듀얼 지원 접근법
 
-```
-"main": "./dist/library.umd.cjs",     // CommonJS 환경용
-"module": "./dist/library.js",        // ESM 환경용
-"exports": {
-  ".": {
-    "import": "./dist/library.js",    // ESM 임포트용
-    "require": "./dist/library.umd.cjs" // CJS 임포트용
+```json
+{
+  // ...
+  "main": "./dist/library.umd.cjs", // CommonJS 환경용
+  "module": "./dist/library.js", // ESM 환경용
+  "exports": {
+    ".": {
+      "import": "./dist/library.js", // ESM 임포트용
+      "require": "./dist/library.umd.cjs" // CJS 임포트용
+    }
   }
+  // ...
 }
 ```
 
