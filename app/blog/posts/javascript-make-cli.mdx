@@ -1,0 +1,919 @@
+---
+title: "[Javascript] CLI 만들기 이모저모"
+publishedAt: "2025-03-28"
+summary: "CLI 도구 개발에 대한 이론적 내용을 정리해보았다."
+tags: "javascript, cli, inflearn, sinabro"
+---
+
+# CLI 만들기 이모저모
+
+개발자로서 CLI(Command Line Interface) 도구는 일상적으로 사용하는 필수 도구다. `npm`, `git`, `vite` 등 매일 사용하는 도구들도 사실은 모두 CLI 프로그램이다. 이번 글에서는 Node.js를 사용해 직접 CLI 도구를 만드는 방법부터 배포하는 방법까지 알아보자.
+
+## CLI의 기본 개념
+
+CLI(Command Line Interface)는 그래픽 인터페이스(GUI) 없이 텍스트 명령으로 프로그램을 실행하는 방식이다. 개발자들이 선호하는 이유는 간단하다:
+
+- **자동화가 용이함**: 스크립트로 여러 명령을 연결해 복잡한 작업을 자동화할 수 있다.
+- **리소스 효율성**: GUI보다 적은 시스템 리소스를 사용한다.
+- **원격 작업**: SSH 등을 통해 원격 서버에서도 쉽게 작업할 수 있다.
+- **정확성과 재현성**: 동일한 명령어는 항상 동일한 결과를 보장한다.
+
+Node.js는 크로스 플랫폼 지원과 풍부한 패키지 생태계 덕분에 CLI 도구 개발에 매우 적합하다.
+
+## Node.js 패키지의 bin 속성 이해하기
+
+NPM으로 패키지를 설치할 때 어떤 패키지는 전역 명령어를 제공하고, 어떤 패키지는 그렇지 않다. 이 차이는 `package.json`의 `bin` 속성에서 비롯된다.
+
+### bin 속성이란?
+
+`bin` 속성은 패키지가 제공하는 실행 가능한 파일과 그 명령어 이름을 연결한다.
+
+```json
+{
+  "name": "my-cli-tool",
+  "bin": {
+    "my-tool": "./bin/index.js"
+  }
+}
+```
+
+또는 명령어가 하나만 있을 경우 더 간단하게:
+
+```json
+{
+  "name": "my-cli-tool",
+  "bin": "./bin/index.js"
+}
+```
+
+위 경우 패키지 이름이 곧 명령어 이름이 된다.
+
+### 설치 시 일어나는 일
+
+패키지를 설치하면:
+
+1. **로컬 설치**: `node_modules/.bin/` 디렉토리에 실행 파일 심볼릭 링크가 생성된다.
+2. **전역 설치**: 시스템 PATH에 포함된 디렉토리(예: `/usr/local/bin`)에 심볼릭 링크가 생성된다.
+
+### 심볼릭 링크란?
+
+심볼릭 링크(Symbolic Link, Symlink)는 다른 파일이나 디렉토리를 가리키는 특별한 파일이다. 원본 파일에 대한 "바로가기"라고 생각하면 된다.
+
+- 윈도우의 '바로가기'와 유사하지만 시스템 수준에서 동작한다.
+- 실제 파일이 아닌 파일 경로를 가리키는 포인터다.
+- 원본 파일이 수정되면 심볼릭 링크를 통해 접근해도 수정된 내용을 볼 수 있다.
+
+CLI 도구에서 심볼릭 링크는 중요한 역할을 한다:
+
+- 실제 실행 파일은 `node_modules/패키지명/` 안에 있지만, 심볼릭 링크를 통해 `node_modules/.bin/`에서 바로 접근할 수 있다.
+- 이 덕분에 `package.json`의 scripts에서 경로 없이 명령어 이름만으로 실행할 수 있다.
+
+### 로컬 설치된 CLI 도구 실행하기
+
+로컬에만 설치된 CLI 도구를 실행하는 방법은 세 가지가 있다:
+
+1. **전체 경로 사용**: `./node_modules/.bin/vite`
+2. **npx 사용**: `npx vite` (npm 5.2.0 이상)
+3. **npm scripts 사용**:
+
+```json
+{
+  "scripts": {
+    "dev": "vite"
+  }
+}
+```
+
+`vite`를 예로 들어보자:
+
+```json
+{
+  "bin": {
+    "vite": "bin/vite.js"
+  }
+}
+```
+
+이 정의 덕분에 전역 설치 시 터미널에서 바로 `vite` 명령을 실행할 수 있다.
+
+## Shebang과 실행 권한
+
+CLI 도구의 엔트리 파일 첫 줄에는 보통 다음과 같은 `shebang` 문이 있다:
+
+```javascript
+#!/usr/bin/env node
+```
+
+### Shebang이란?
+
+Shebang(`#!`)은 스크립트 파일을 어떤 인터프리터로 실행할지 지정하는 선언이다. `#!/usr/bin/env node`는 "환경 변수 PATH에서 node를 찾아 이 파일을 실행하라"는 의미다.
+
+이 선언이 중요한 이유:
+
+- 사용자가 직접 `node` 명령어를 입력하지 않고도 스크립트를 실행할 수 있게 한다.
+- 다양한 환경에서 Node.js의 위치가 다를 수 있는데, `env`를 통해 PATH에서 찾기 때문에 이식성이 좋다.
+
+### 실행 권한 설정
+
+유닉스 계열 시스템(Linux, macOS)에서는 파일에 실행 권한이 필요하다:
+
+```bash
+chmod +x ./bin/my-cli.js
+```
+
+npm은 패키지 설치 시 자동으로 bin 파일에 실행 권한을 부여한다.
+
+### 설치 위치 확인하기
+
+어떤 CLI 도구가 시스템 어디에 설치되었는지 확인하려면:
+
+```bash
+which vite    # Unix/Linux/macOS
+where vite    # Windows
+```
+
+## 명령줄 인자 처리하기
+
+CLI 도구의 핵심은 사용자 입력을 처리하는 것이다. Node.js에서는 `process.argv` 배열을 통해 명령줄 인자에 접근할 수 있다.
+
+### process.argv 이해하기
+
+Node.js에서 `process.argv`는 명령줄에서 전달된 모든 인자를 담고 있는 배열이다. 이 배열에는 다음 정보가 순서대로 포함된다:
+
+1. **Node.js 실행 파일 경로** (인덱스 0)
+2. **실행 중인 JavaScript 파일 경로** (인덱스 1)
+3. **사용자가 입력한 실제 인자들** (인덱스 2부터)
+
+```javascript
+#!/usr/bin/env node
+
+// 모든 명령줄 인자 출력
+console.log(process.argv);
+```
+
+이 스크립트를 `my-cli.js`로 저장하고 다음과 같이 실행하면:
+
+```bash
+node my-cli.js arg1 arg2 --option value
+```
+
+출력:
+
+```
+[
+  '/usr/local/bin/node',        // Node.js 실행 파일 경로
+  '/path/to/my-cli.js',         // 실행된 스크립트 경로
+  'arg1',                       // 첫 번째 인자
+  'arg2',                       // 두 번째 인자
+  '--option',                   // 옵션 플래그
+  'value'                       // 옵션 값
+]
+```
+
+실제 인자는 배열의 세 번째 요소(인덱스 2)부터 시작한다:
+
+```javascript
+#!/usr/bin/env node
+
+// 실제 인자만 처리 (Node 실행 파일과 스크립트 경로 제외)
+const args = process.argv.slice(2);
+console.log("Arguments:", args);
+```
+
+실행 결과:
+
+```
+Arguments: [ 'arg1', 'arg2', '--option', 'value' ]
+```
+
+### 기본적인 인자 파싱
+
+간단한 CLI 도구라면 직접 인자를 파싱할 수 있다:
+
+```javascript
+const args = process.argv.slice(2);
+const options = {};
+let currentOption = null;
+
+// 기본적인 파싱 로직
+args.forEach((arg) => {
+  if (arg.startsWith("--")) {
+    // 옵션 이름 저장 (--없이)
+    currentOption = arg.slice(2);
+    options[currentOption] = true; // 기본값은 true
+  } else if (currentOption) {
+    // 이전 옵션의 값 설정
+    options[currentOption] = arg;
+    currentOption = null;
+  }
+});
+
+console.log("Parsed options:", options);
+```
+
+예를 들어 다음과 같이 실행하면:
+
+```bash
+node my-cli.js --name John --age 30 --isAdmin
+```
+
+출력 결과:
+
+```
+Parsed options: { name: 'John', age: '30', isAdmin: true }
+```
+
+하지만 복잡한 CLI 도구라면 전문 라이브러리를 사용하는 것이 좋다.
+
+## Commander.js로 고급 CLI 만들기
+
+[Commander.js](https://github.com/tj/commander.js)는 Node.js CLI 도구 개발에 가장 널리 사용되는 라이브러리다. 명령어, 옵션, 인자를 쉽게 정의하고 파싱할 수 있다.
+
+### 설치
+
+```bash
+npm install commander
+```
+
+### 기본 사용법
+
+```javascript
+#!/usr/bin/env node
+
+// ES 모듈 형식 (mjs)
+import { Command } from "commander";
+const program = new Command();
+
+// 메타데이터 설정
+program.name("my-tool").description("CLI tool description").version("1.0.0");
+
+// 옵션 정의
+program
+  .option("-d, --debug", "디버그 모드 활성화")
+  .option("-f, --file <path>", "처리할 파일 경로")
+  .option("-n, --number <number>", "숫자 값", parseInt);
+
+// 명령어 정의
+program
+  .command("generate <n>")
+  .description("파일 생성")
+  .action((name, options) => {
+    console.log(`파일 생성: ${name}`);
+    if (program.opts().debug) {
+      console.log("디버그 정보:", { name, options });
+    }
+  });
+
+// 프로그램 실행
+program.parse();
+```
+
+이제 다음과 같이 사용할 수 있다:
+
+```bash
+my-tool --debug generate myfile
+my-tool -f config.json -n 42 generate myproject
+```
+
+첫 번째 명령어 실행 결과:
+
+```
+파일 생성: myfile
+디버그 정보: { name: 'myfile', options: {} }
+```
+
+두 번째 명령어 실행 결과:
+
+```
+파일 생성: myproject
+```
+
+참고로 `--debug` 옵션이 없으면 디버그 정보는 출력되지 않는다.
+
+### 하위 명령어 구성
+
+큰 CLI 도구는 git처럼 하위 명령어를 구성할 수 있다:
+
+```javascript
+// ES 모듈 형식 (mjs)
+import { Command } from "commander";
+const program = new Command();
+
+program
+  .command("init")
+  .description("프로젝트 초기화")
+  .action(() => {
+    console.log("프로젝트를 초기화합니다...");
+    console.log("package.json 파일을 생성했습니다.");
+  });
+
+program
+  .command("build")
+  .description("프로젝트 빌드")
+  .option("--minify", "코드 최소화")
+  .action((options) => {
+    console.log("프로젝트 빌드를 시작합니다...");
+    if (options.minify) {
+      console.log("코드 최소화가 활성화되었습니다.");
+    }
+    console.log("빌드가 완료되었습니다!");
+  });
+```
+
+터미널에서 사용 예:
+
+```bash
+# 초기화 명령어 실행
+$ my-tool init
+프로젝트를 초기화합니다...
+package.json 파일을 생성했습니다.
+
+# 빌드 명령어 (기본 옵션)
+$ my-tool build
+프로젝트 빌드를 시작합니다...
+빌드가 완료되었습니다!
+
+# 빌드 명령어 (최소화 옵션 활성화)
+$ my-tool build --minify
+프로젝트 빌드를 시작합니다...
+코드 최소화가 활성화되었습니다.
+빌드가 완료되었습니다!
+```
+
+## 사용자 데이터 안전하게 저장하기
+
+CLI 도구가 API 키나 비밀번호 같은 민감한 정보를 다룰 때는 안전한 저장 방법이 필요하다.
+
+### conf 라이브러리로 설정 관리하기
+
+[conf](https://github.com/sindresorhus/conf)는 Node.js CLI 도구에서 설정을 안전하게 저장할 때 가장 많이 사용되는 라이브러리다:
+
+```bash
+npm install conf
+```
+
+#### 기본 사용법
+
+```javascript
+// ES 모듈 형식 (mjs)
+import Conf from "conf";
+import crypto from "crypto";
+import os from "os";
+
+// 사용자 환경에 기반한 고유 키 생성 (보안 강화)
+function generateMachineKey() {
+  const hostname = os.hostname();
+  const username = os.userInfo().username;
+  const machineId = `${hostname}-${username}`;
+  return crypto
+    .createHash("sha256")
+    .update(machineId)
+    .digest("hex")
+    .substring(0, 32);
+}
+
+// 암호화된 설정 저장소 생성
+const config = new Conf({
+  projectName: "my-cli-tool", // 설정 파일 이름 지정
+  schema: {
+    // 스키마로 타입 검증
+    apiKey: {
+      type: "string",
+    },
+    username: {
+      type: "string",
+    },
+  },
+  encryptionKey: generateMachineKey(), // 동적 암호화 키 사용
+});
+
+// 값 저장
+config.set("apiKey", "secret-api-key");
+config.set("username", "user123");
+
+// 값 가져오기
+const apiKey = config.get("apiKey");
+console.log(apiKey); // 'secret-api-key'
+
+// 전체 설정 보기
+console.log(config.store); // { apiKey: 'secret-api-key', username: 'user123' }
+
+// 값 삭제
+config.delete("apiKey");
+
+// 모든 값 삭제
+config.clear();
+```
+
+#### 주요 기능
+
+1. **자동 저장**: 변경사항이 자동으로 디스크에 저장된다.
+2. **스키마 검증**: 타입 스키마를 통해 저장 데이터의 유효성을 검증한다.
+3. **암호화**: `encryptionKey` 옵션으로 민감한 정보를 안전하게 암호화한다.
+4. **마이그레이션**: 버전 간 설정 마이그레이션을 지원한다.
+
+#### 저장 위치
+
+`conf`는 설정 파일을 각 운영체제의 표준 위치에 저장한다:
+
+- **macOS**: `~/Library/Preferences/my-cli-tool-nodejs`
+- **Windows**: `%APPDATA%\my-cli-tool-nodejs\Config`
+- **Linux**: `~/.config/my-cli-tool-nodejs`
+
+#### API 키 관리 CLI 도구 예제
+
+다음은 `conf`를 사용해 API 키를 안전하게 관리하는 CLI 도구의 예제다:
+
+```javascript
+#!/usr/bin/env node
+
+// api-manager.mjs
+import { Command } from "commander";
+import Conf from "conf";
+import inquirer from "inquirer";
+import crypto from "crypto";
+import os from "os";
+
+// 사용자 고유 암호화 키 생성
+function generateSecureKey() {
+  const hostname = os.hostname();
+  const username = os.userInfo().username;
+  const machineId = `${hostname}-${username}`;
+  return crypto
+    .createHash("sha256")
+    .update(machineId)
+    .digest("hex")
+    .substring(0, 32);
+}
+
+// 프로그램 설정
+const program = new Command();
+program.name("api-keys").description("API 키 안전 관리 도구").version("1.0.0");
+
+// 암호화된 설정 저장소 생성
+const config = new Conf({
+  projectName: "api-keys-manager",
+  schema: {
+    apiKeys: {
+      type: "object",
+      default: {},
+    },
+  },
+  encryptionKey: generateSecureKey(),
+});
+
+// API 키 추가 명령어
+program
+  .command("add <service>")
+  .description("새 서비스의 API 키 추가")
+  .action(async (service) => {
+    const answers = await inquirer.prompt([
+      {
+        type: "input",
+        name: "apiKey",
+        message: `${service}의 API 키를 입력하세요:`,
+        validate: (input) =>
+          input.length > 0 ? true : "API 키는 비워둘 수 없습니다",
+      },
+    ]);
+
+    // 기존 API 키 가져오기
+    const apiKeys = config.get("apiKeys");
+
+    // 새 API 키 추가
+    apiKeys[service] = {
+      key: answers.apiKey,
+      createdAt: new Date().toISOString(),
+    };
+
+    // 암호화하여 저장
+    config.set("apiKeys", apiKeys);
+
+    console.log(`${service}의 API 키가 안전하게 저장되었습니다.`);
+  });
+
+// API 키 목록 보기 명령어
+program
+  .command("list")
+  .description("저장된 모든 서비스 목록 보기")
+  .action(() => {
+    const apiKeys = config.get("apiKeys");
+    const services = Object.keys(apiKeys);
+
+    if (services.length === 0) {
+      console.log("저장된 API 키가 없습니다.");
+      return;
+    }
+
+    console.log("저장된 서비스 목록:");
+    services.forEach((service) => {
+      // 보안을 위해 실제 키는 표시하지 않고 마스킹
+      const key = apiKeys[service].key;
+      const maskedKey =
+        key.substring(0, 4) +
+        "*".repeat(key.length - 8) +
+        key.substring(key.length - 4);
+      const createdDate = new Date(
+        apiKeys[service].createdAt
+      ).toLocaleDateString();
+      console.log(`- ${service}: ${maskedKey} (생성일: ${createdDate})`);
+    });
+  });
+
+// API 키 가져오기 명령어
+program
+  .command("get <service>")
+  .description("특정 서비스의 API 키 가져오기")
+  .action((service) => {
+    const apiKeys = config.get("apiKeys");
+
+    if (!apiKeys[service]) {
+      console.error(`오류: '${service}'의 API 키를 찾을 수 없습니다.`);
+      process.exit(1);
+    }
+
+    console.log(apiKeys[service].key);
+  });
+
+// API 키 삭제 명령어
+program
+  .command("remove <service>")
+  .description("저장된 API 키 삭제")
+  .action((service) => {
+    const apiKeys = config.get("apiKeys");
+
+    if (!apiKeys[service]) {
+      console.error(`오류: '${service}'의 API 키를 찾을 수 없습니다.`);
+      process.exit(1);
+    }
+
+    delete apiKeys[service];
+    config.set("apiKeys", apiKeys);
+
+    console.log(`${service}의 API 키가 삭제되었습니다.`);
+  });
+
+program.parse();
+```
+
+#### 사용 예시
+
+```bash
+# API 키 추가
+$ api-keys add github
+? github의 API 키를 입력하세요: ghp_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+github의 API 키가 안전하게 저장되었습니다.
+
+# 저장된 서비스 목록 확인
+$ api-keys list
+저장된 서비스 목록:
+- github: ghp_************************o5p6 (생성일: 2023-03-28)
+
+# API 키 가져오기
+$ api-keys get github
+ghp_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+
+# API 키 삭제
+$ api-keys remove github
+github의 API 키가 삭제되었습니다.
+```
+
+#### 보안 강화 팁
+
+CLI 도구에서 민감한 정보를 다룰 때 추가로 고려할 사항:
+
+1. **고유한 암호화 키**: 위 예제처럼 사용자별 고유 키를 생성해 보안을 강화한다.
+2. **필요할 때만 정보 표시**: `list` 명령어에서는 API 키를 마스킹하고, `get` 명령어로 필요할 때만 전체 값을 보여준다.
+3. **파일 권한 설정**: 유닉스 계열 시스템에서는 `chmod 600`으로 설정 파일의 권한을 제한하는 것이 좋다.
+4. **비활성 타임아웃**: 보안이 중요한 경우 일정 시간 후 자동 로그아웃 기능을 구현하는 것이 좋다.
+
+### 대화형 프롬프트
+
+사용자에게 정보를 입력받을 때는 [inquirer](https://github.com/SBoudrias/Inquirer.js)와 같은 라이브러리가 유용하다:
+
+```javascript
+// ES 모듈 형식 (mjs)
+import inquirer from "inquirer";
+
+async function promptCredentials() {
+  const answers = await inquirer.prompt([
+    {
+      type: "input",
+      name: "username",
+      message: "사용자 이름을 입력하세요:",
+      validate: (input) =>
+        input.length >= 3 ? true : "사용자 이름은 3자 이상이어야 합니다.",
+    },
+    {
+      type: "password",
+      name: "password",
+      message: "비밀번호를 입력하세요:",
+      mask: "*",
+      validate: (input) =>
+        input.length >= 8 ? true : "비밀번호는 8자 이상이어야 합니다.",
+    },
+    {
+      type: "list",
+      name: "role",
+      message: "역할을 선택하세요:",
+      choices: ["개발자", "디자이너", "관리자", "기타"],
+    },
+    {
+      type: "confirm",
+      name: "agreeTerms",
+      message: "이용약관에 동의하십니까?",
+      default: false,
+    },
+  ]);
+
+  return answers;
+}
+
+// 사용 예시
+async function setupUser() {
+  console.log("사용자 정보 설정을 시작합니다...");
+  const userInfo = await promptCredentials();
+
+  if (!userInfo.agreeTerms) {
+    console.log("이용약관에 동의해야 계속할 수 있습니다.");
+    process.exit(1);
+  }
+
+  console.log(`환영합니다, ${userInfo.username}님! (역할: ${userInfo.role})`);
+  // 비밀번호 같은 민감한 정보는 로그에 출력하지 않는다
+}
+
+// setupUser();
+```
+
+### inquirer 주요 프롬프트 타입
+
+inquirer는 다양한 형태의 사용자 입력을 처리할 수 있다:
+
+1. **input**: 일반 텍스트 입력
+2. **password**: 마스킹된 비밀번호 입력
+3. **list**: 단일 선택 목록
+4. **checkbox**: 다중 선택 목록
+5. **confirm**: 예/아니오 질문
+6. **editor**: 여러 줄 텍스트 편집기
+7. **number**: 숫자 입력
+
+실행 결과 예시:
+
+```
+? 사용자 이름을 입력하세요: janekim
+? 비밀번호를 입력하세요: ********
+? 역할을 선택하세요: 개발자
+? 이용약관에 동의하십니까? Yes
+환영합니다, janekim님! (역할: 개발자)
+```
+
+## CLI 배포하기
+
+CLI 도구를 다른 사람들이 사용할 수 있도록 배포하는 방법을 알아보자.
+
+### package.json 준비
+
+배포 전 `package.json`에 필요한 설정을 확인한다:
+
+```json
+{
+  "name": "my-cli-tool",
+  "version": "1.0.0",
+  "description": "설명",
+  "bin": {
+    "my-tool": "./bin/index.js"
+  },
+  "files": ["bin", "lib"],
+  "keywords": ["cli", "tool"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  }
+}
+```
+
+중요 필드:
+
+- `bin`: CLI 진입점 정의
+- `files`: npm 패키지에 포함할 파일/디렉토리 (나머지는 무시됨)
+- `engines`: 지원하는 Node.js 버전 명시
+
+### NPM에 배포하기
+
+계정이 없다면 먼저 [npmjs.com](https://www.npmjs.com/)에서 가입한다.
+
+```bash
+# NPM에 로그인
+npm login
+
+# 패키지 배포
+npm publish
+```
+
+### 전역 설치 테스트
+
+배포 후 설치 테스트:
+
+```bash
+# 전역 설치
+npm install -g my-cli-tool
+
+# 실행 테스트
+my-tool --help
+```
+
+## 실전 예제: 간단한 파일 생성 CLI 도구
+
+이제 배운 내용을 종합해 간단한 CLI 도구를 만들어보자.
+
+```javascript
+#!/usr/bin/env node
+
+// file-generator.mjs
+import fs from "fs";
+import path from "path";
+import { Command } from "commander";
+import inquirer from "inquirer";
+
+// 프로그램 메타데이터 설정
+const program = new Command();
+program
+  .name("create-file")
+  .description("간단한 파일 생성 도구")
+  .version("1.0.0");
+
+// 명령어 정의
+program
+  .command("template <type>")
+  .description("템플릿 파일 생성 (html, css, js)")
+  .option("-n, --name <filename>", "파일 이름 (기본: index)")
+  .action(async (type, options) => {
+    // 지원하는 템플릿 확인
+    const validTypes = ["html", "css", "js"];
+    if (!validTypes.includes(type)) {
+      console.error(
+        `오류: '${type}'은 지원하지 않는 타입입니다. ${validTypes.join(
+          ", "
+        )} 중 하나를 사용하세요.`
+      );
+      process.exit(1);
+    }
+
+    // 파일 이름 결정
+    let filename = options.name || "index";
+    filename = `${filename}.${type}`;
+
+    // 파일이 이미 존재하는지 확인
+    if (fs.existsSync(filename)) {
+      const { overwrite } = await inquirer.prompt([
+        {
+          type: "confirm",
+          name: "overwrite",
+          message: `'${filename}'이 이미 존재합니다. 덮어쓰시겠습니까?`,
+          default: false,
+        },
+      ]);
+
+      if (!overwrite) {
+        console.log("작업이 취소되었습니다.");
+        process.exit(0);
+      }
+    }
+
+    // 템플릿 내용 생성
+    let content = "";
+    switch (type) {
+      case "html":
+        content = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>새 문서</title>
+</head>
+<body>
+  <h1>안녕하세요!</h1>
+</body>
+</html>`;
+        break;
+      case "css":
+        content = `/* ${filename} */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  margin: 0;
+  padding: 20px;
+  line-height: 1.6;
+}`;
+        break;
+      case "js":
+        content = `// ${filename}
+function init() {
+  console.log('스크립트가 로드되었습니다.');
+}
+
+document.addEventListener('DOMContentLoaded', init);`;
+        break;
+    }
+
+    // 파일 작성
+    fs.writeFileSync(filename, content);
+    console.log(`'${filename}' 파일이 성공적으로 생성되었습니다.`);
+  });
+
+// 프로그램 실행
+program.parse();
+```
+
+### 사용 예시와 결과
+
+1. HTML 파일 생성:
+
+```bash
+$ create-file template html -n homepage
+'homepage.html' 파일이 성공적으로 생성되었습니다.
+```
+
+2. 이미 존재하는 파일 덮어쓰기:
+
+```bash
+$ create-file template css -n style
+'style.css'이 이미 존재합니다. 덮어쓰시겠습니까? (y/n) y
+'style.css' 파일이 성공적으로 생성되었습니다.
+```
+
+3. 작업 취소:
+
+```bash
+$ create-file template js -n app
+'app.js'이 이미 존재합니다. 덮어쓰시겠습니까? (y/n) n
+작업이 취소되었습니다.
+```
+
+4. 도움말 보기:
+
+```bash
+$ create-file --help
+Usage: create-file [options] [command]
+
+간단한 파일 생성 도구
+
+Options:
+  -V, --version                     버전 출력
+  -h, --help                        도움말 표시
+
+Commands:
+  template [options] <type>         템플릿 파일 생성 (html, css, js)
+  help [command]                    display help for command
+```
+
+### 배포 과정
+
+이 CLI 도구를 배포하려면 `package.json`을 다음과 같이 설정한다:
+
+```json
+{
+  "name": "create-file",
+  "version": "1.0.0",
+  "description": "간단한 파일 생성 CLI 도구",
+  "type": "module",
+  "bin": {
+    "create-file": "./file-generator.mjs"
+  },
+  "files": ["file-generator.mjs"],
+  "dependencies": {
+    "commander": "^9.0.0",
+    "inquirer": "^8.2.0"
+  }
+}
+```
+
+실행 파일에 실행 권한을 부여하고 npm에 배포한다:
+
+```bash
+chmod +x file-generator.mjs
+npm publish
+```
+
+그러면 사용자들이 다음 명령어로 설치할 수 있다:
+
+```bash
+npm install -g create-file
+```
+
+## 마치며
+
+이제 Node.js로 CLI 도구를 개발하는 기본적인 방법을 알게 되었다. 명령줄 도구는 개발 워크플로우를 자동화하고 생산성을 높이는 강력한 도구다. 웹 개발자로서 반복적인 작업을 자동화하는 CLI 도구를 만들어 사용한다면 업무 효율성을 크게 높일 수 있을 것이다.
+
+더 배워볼 만한 주제:
+
+- [chalk](https://github.com/chalk/chalk): 터미널 출력에 색상 입히기
+- [ora](https://github.com/sindresorhus/ora): 로딩 스피너 구현
+- [boxen](https://github.com/sindresorhus/boxen): 터미널에 박스 UI 만들기
+- [update-notifier](https://github.com/yeoman/update-notifier): CLI 도구 업데이트 알림
+
+여러분만의 CLI 도구를 만들어 NPM에 공유해보자. 다른 개발자들에게도 도움이 될 수 있다!
