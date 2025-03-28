@@ -73,7 +73,7 @@ CLI 도구에서 심볼릭 링크는 중요한 역할을 한다:
 로컬에만 설치된 CLI 도구를 실행하는 방법은 세 가지가 있다:
 
 1. **전체 경로 사용**: `./node_modules/.bin/vite`
-2. **npx 사용**: `npx vite` (npm 5.2.0 이상)
+2. **npx 사용**: `npx vite`
 3. **npm scripts 사용**:
 
 ```json
@@ -159,7 +159,7 @@ node my-cli.js arg1 arg2 --option value
 
 출력:
 
-```
+```text
 [
   '/usr/local/bin/node',        // Node.js 실행 파일 경로
   '/path/to/my-cli.js',         // 실행된 스크립트 경로
@@ -182,7 +182,7 @@ console.log("Arguments:", args);
 
 실행 결과:
 
-```
+```text
 Arguments: [ 'arg1', 'arg2', '--option', 'value' ]
 ```
 
@@ -219,7 +219,7 @@ node my-cli.js --name John --age 30 --isAdmin
 
 출력 결과:
 
-```
+```text
 Parsed options: { name: 'John', age: '30', isAdmin: true }
 ```
 
@@ -277,14 +277,14 @@ my-tool -f config.json -n 42 generate myproject
 
 첫 번째 명령어 실행 결과:
 
-```
+```text
 파일 생성: myfile
 디버그 정보: { name: 'myfile', options: {} }
 ```
 
 두 번째 명령어 실행 결과:
 
-```
+```text
 파일 생성: myproject
 ```
 
@@ -660,7 +660,7 @@ inquirer는 다양한 형태의 사용자 입력을 처리할 수 있다:
 
 실행 결과 예시:
 
-```
+```text
 ? 사용자 이름을 입력하세요: janekim
 ? 비밀번호를 입력하세요: ********
 ? 역할을 선택하세요: 개발자
