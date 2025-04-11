@@ -1,0 +1,295 @@
+---
+title: "Next.js 리다이렉트 이슈: 헤더 차이로 발생한 오류와 해결책"
+publishedAt: "2025-04-12"
+summary: "Next.js 미들웨어에서 리다이렉트 문제를 해결한 경험과 프록시 환경에서 request.headers.get('host')를 사용해야 하는 이유를 공유합니다."
+tags: "nextjs, middleware, redirect, host-header, troubleshooting"
+---
+
+최근에 해결한 Next.js 애플리케이션의 리다이렉트 이슈에 대해 공유하려고 한다. 특히 쿠버네티스 환경에서 발생할 수 있는 호스트 인식 문제와 그 해결 방법에 대한 내용이다. 복잡한 인프라 구조에서 웹 애플리케이션을 운영할 때 맞닥뜨릴 수 있는 문제를 함께 살펴보자.
+
+## 문제 상황
+
+우리 서비스는 여러 도메인을 사용하는데, 특정 도메인(예: `ai.example.com`과 같이 'example'을 포함하는 도메인)에서 접속했을 경우 `/dashboard` 경로로 자동 리다이렉트 되도록 구현되어 있었다. 이 조건부 리다이렉트를 위해 Next.js의 middleware 기능을 활용했고, `isExampleDomain`이라는 조건으로 판단하고 있었다.
+
+```typescript
+// 수정 전 middleware 코드의 일부
+const { pathname, hostname } = request.nextUrl;
+const isExampleDomain = hostname.includes("example");
+
+// 로그인하지 않은 사용자도 접근 가능한 URL 목록
+const onlyGuestUrls = ["/", "/login", "/create-account"];
+// 현재 요청 경로가 게스트 접근 가능 URL인지 확인
+const isGuestUrl = onlyGuestUrls.indexOf(pathname) !== -1;
+
+if (accessToken && isGuestUrl) {
+  // example 도메인 dashboard 페이지로 redirect - 최우선 처리
+  if (isExampleDomain) {
+    console.log("리다이렉트: Example 도메인 -> /dashboard");
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // 다른 조건에 따른 리다이렉트 로직 (생략)...
+
+  // 기본 리다이렉트
+  console.log("리다이렉트: 기본 -> /home/main");
+  return NextResponse.redirect(new URL("/home/main", request.url));
+}
+```
+
+그런데 실제 운영 환경에서 이 로직이 제대로 동작하지 않았다. `https://www.ai-example.com`과 같은 도메인으로 접속해도 `/dashboard`로 리다이렉트되지 않고 기본 리다이렉트 경로인 `/home/main`로 이동하는 문제가 발생했다.
+
+## 인프라 구조 살펴보기
+
+문제를 파악하기 위해 먼저 우리의 인프라 구조를 살펴봤다. 서비스는 여러 AWS 및 쿠버네티스 요소를 통해 요청이 처리되는 구조로, 사용자 요청이 Next.js 서버에 도달하기까지 여러 프록시 레이어를 거치게 된다. 이 과정에서 원래의 호스트 정보가 어떻게 처리되는지가 핵심 문제였다.
+
+## 원인 분석
+
+로그를 통해 문제를 추적하던 중 흥미로운 점을 발견했다. 로컬 환경에서 테스트할 때 브라우저 주소창에 `http://localhost:3000/`을 입력하면 콘솔에 다음과 같은 로그가 출력됐다:
+
+```javascript
+// 미들웨어 내 로그
+console.log({
+  url: request.url,
+  pathname,
+  host,
+  isGuestUrl,
+  isExampleDomain,
+});
+
+// 콘솔 출력 결과
+{
+  url: 'http://localhost:3000/login', // 주소창에 '/'를 입력했는데 '/login'으로 바뀜
+  pathname: '/login',
+  hostname: 'localhost',
+  isGuestUrl: true,
+  isExampleDomain: false
+}
+리다이렉트: 기본 -> /home/main
+```
+
+여기서 두 가지 중요한 점을 발견했다:
+
+1. 주소창에 `http://localhost:3000/`을 입력했는데, 미들웨어가 실행될 때는 이미 pathname이 `/login`으로 바뀌어 있었다. 이건 원래 의도한 경로 인식이 제대로 안 되고 있다는 증거다. 바로 주소창에서 이를 확인할 수 없었던 이유는 middleware에서 특정 패턴을 통해 /login이 아닌 또 다른 url 리다이렉트하기 때문이다.
+
+2. `hostname`이 'localhost'로 인식되어 `isExampleDomain` 조건이 `false`로 판정됐다. 실제 운영 환경에서도 비슷한 문제가 있었을 거라 생각했다.
+
+첫 번째 문제의 원인을 찾기 위해 `next.config.js` 파일을 확인했다:
+
+```javascript
+// next.config.js의 리다이렉트 설정
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // 다른 설정들...
+  async redirects() {
+    return [
+      {
+        source: "/",
+        destination: "/login",
+        permanent: false,
+      },
+      {
+        source: "/user",
+        destination: "/user/profile",
+        permanent: false,
+      },
+      {
+        source: "/content",
+        destination: "/content/list",
+        permanent: false,
+      },
+    ];
+  },
+  // 다른 설정들...
+};
+```
+
+이 설정 때문에 루트 경로('/')는 항상 '/login'으로 리다이렉트되고, 그 후에 middleware 로직이 실행됐던 것이다. 이건 Next.js의 설정 적용 순서 때문인데, `next.config.js`의 리다이렉트 규칙이 middleware보다 먼저 적용되기 때문이다.
+
+두 번째 문제는 쿠버네티스 환경에서 `request.nextUrl.host`가 실제 요청 도메인이 아닌, 파드의 DNS나 노드 이름을 반환하는 것으로 짐작됐다. 이 문제를 더 알아보기 위해 백엔드 개발자와 얘기해봤는데, 쿠버네티스 같은 컨테이너 환경에서는 `request.nextUrl.host`가 내부 클러스터 주소를 반환할 가능성이 크다고 판단했다. 실제 로그를 직접 확인하진 못했지만, 아마 이런 상황이었을 거라 생각한다:
+
+```javascript
+// 운영 환경에서 예상되는 로그 (추정)
+{
+  url: 'https://내부-클러스터-주소',
+  pathname: '/login',
+  host: '내부-클러스터-주소',  // 내부 클러스터 주소
+  isGuestUrl: true,
+  isExampleDomain: false  // example.com으로 접속했는데도 false로 판정됨
+}
+```
+
+정리하자면, 우리는 두 가지 주요 문제를 발견했다:
+
+1. next.config.js의 리다이렉트 설정이 middleware 실행 전에 적용되어, 원래 의도한 경로 인식이 방해받는 문제
+2. 쿠버네티스 환경에서 request.nextUrl.host가 내부 클러스터 주소를 반환해서 도메인 기반 조건 확인이 실패하는 것으로 추정되는 문제
+
+이제 이 두 문제를 어떻게 해결했는지 살펴보자.
+
+## 해결 방법
+
+문제 분석을 바탕으로 두 가지 핵심 수정을 진행했다:
+
+### 1. `next.config.js`의 루트 리다이렉트 제거
+
+첫 번째로, `next.config.js`에서 루트('/')에서 '/login'으로의 리다이렉트 규칙을 제거했다. 이렇게 하면 middleware에서 원래의 경로를 그대로 인식할 수 있게 된다.
+
+```javascript
+// 수정 후 next.config.js의 리다이렉트 설정
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // 다른 설정들...
+  async redirects() {
+    return [
+      // '/' -> '/login' 리다이렉트 제거함
+      {
+        source: "/user",
+        destination: "/user/profile",
+        permanent: false,
+      },
+      {
+        source: "/content",
+        destination: "/content/list",
+        permanent: false,
+      },
+    ];
+  },
+  // 다른 설정들...
+};
+```
+
+### 2. 호스트 정보 가져오는 방식 변경
+
+두 번째로, middleware에서 호스트 정보를 가져오는 방식을 `request.nextUrl.hostname`에서 `request.headers.get('host')`로 변경했다. HTTP 헤더의 'host' 값을 사용하면 프록시 환경에서도 원래의 호스트 정보를 정확하게 가져올 수 있다.
+
+```typescript
+// 수정 전 middleware 코드
+const { pathname, hostname } = request.nextUrl;
+const isExampleDomain = hostname.includes("example");
+
+// 수정 후 middleware 코드
+const host = request.headers.get("host") ?? ""; // 헤더에서 호스트 정보 가져오기
+const { pathname } = request.nextUrl;
+const isExampleDomain = host.includes("example"); // 헤더의 호스트로 도메인 확인
+
+if (accessToken && isGuestUrl) {
+  // example 도메인 dashboard 페이지로 redirect - 최우선 처리
+  if (isExampleDomain) {
+    console.log("리다이렉트: Example 도메인 -> /dashboard");
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // 기본 리다이렉트 경로
+  console.log("리다이렉트: 기본 -> /home/main");
+  return NextResponse.redirect(new URL("/home/main", request.url));
+}
+```
+
+`request.nextUrl.hostname` 대신 `request.headers.get('host')`를 사용한 이유는 다음과 같다:
+
+1. **프록시 환경에서 원래 도메인 유지**:
+   복잡한 인프라 구조에서는 `request.nextUrl.hostname`이 내부 클러스터 주소로 바뀔 수 있지만, HTTP 헤더의 'Host' 값은 보통 원래 사용자가 접속한 도메인을 그대로 유지한다.
+
+2. **HTTP 표준과의 일관성**:
+   HTTP 표준에 따르면, 'Host' 헤더는 클라이언트가 요청한 원래 호스트 이름을 담고 있다. 프록시 서버는 이 헤더를 대체로 그대로 전달한다.
+
+3. **Next.js의 내부 처리 방식**:
+   Next.js의 `nextUrl` 객체는 내부적으로 URL을 처리하는 과정에서, 특히 프록시 환경에서는 원본 도메인 정보가 바뀔 수 있다.
+
+여기서 "왜 처음부터 `request.headers.get('host')`를 사용하지 않았을까?"라는 의문이 들 수 있다. 일반적인 개발 환경에서는 `request.nextUrl.host`와 `request.headers.get('host')`가 같은 값을 반환하는 경우가 많아서 차이를 인지하기 어렵다. 게다가 Next.js 공식 문서에서도 두 방식의 차이를 자세히 설명하지 않아서, 복잡한 프록시 환경에서 이런 차이가 생길 수 있다는 건 실제 문제를 겪으면서 알게 됐다.
+
+## 테스트 및 결과
+
+이 두 가지 수정 사항을 적용한 후, 로컬 환경과 운영 환경 모두에서 테스트를 진행했다. 다행히 수정 후에는 문제가 깔끔하게 해결됐다.
+
+### 로컬 환경 테스트 결과
+
+브라우저에서 `http://localhost:3000/`으로 접속했을 때의 로그:
+
+```javascript
+// 수정 후 로그 출력
+{
+  url: 'http://localhost:3000/',  // 이제 '/login'이 아닌 원래 경로 '/'가 유지됨
+  pathname: '/',
+  host: 'localhost',
+  isGuestUrl: true,
+  isExampleDomain: false
+}
+```
+
+### 운영 환경 테스트 결과
+
+운영 환경에서도 의도한 대로 리다이렉트가 잘 작동하는 것을 확인했다. `example.com` 도메인으로 접속하면 `/dashboard`로 잘 리다이렉트되고, 다른 도메인에서는 기본 경로인 `/home/main`으로 리다이렉트됐다. 이로써 우리가 적용한 해결책이 효과적이라는 걸 확인할 수 있었다.
+
+```javascript
+// 운영 환경에서의 로그 (추정)
+{
+  url: 'http://example.com/dashboard',
+  pathname: '/dashboard',
+  host: 'example.com',
+  isGuestUrl: true,
+  isExampleDomain: true
+}
+```
+
+## 더 나아가기: 프록시 환경에서의 Next.js 미들웨어 팁
+
+이번 문제 해결 과정에서 얻은 몇 가지 유용한 팁을 공유한다:
+
+### 1. HTTP 헤더 활용하기
+
+프록시 환경에서는 `request.nextUrl.host` 대신 `request.headers.get('host')`를 사용하는 게 더 안정적이다. 이 외에도 다음과 같은 헤더들이 도움이 될 수 있다:
+
+- `X-Forwarded-Host`: 프록시를 통해 전달된 원래 호스트 정보
+- `X-Forwarded-Proto`: 원래 요청의 프로토콜(http/https)
+- `X-Real-IP`: 클라이언트의 실제 IP 주소
+
+### 2. 로깅 적극 활용하기
+
+이번 문제 해결에서 가장 도움이 됐던 건 적절한 로깅이었다. 특히 복잡한 인프라 환경에서는 각 단계별로 어떤 데이터가 어떻게 변하는지 추적하는 게 중요하다.
+
+### 3. 설정의 우선순위 이해하기
+
+Next.js에서는 `next.config.js`의 리다이렉트 설정이 middleware보다 먼저 적용된다. 따라서 조건부 리다이렉트 로직을 구현할 때는 이 점을 꼭 고려해야 한다.
+
+특히 Next.js 공식 문서에 따르면 "Pages Router를 사용할 때, 리다이렉트는 Middleware가 존재하고 해당 경로와 일치하지 않는 한 클라이언트 사이드 라우팅(`Link`, `router.push`)에는 적용되지 않는다"는 점을 알아두면 좋다. 이건 우리가 겪었던 문제와 직접적인 관련이 있다.
+
+이 말은 `next.config.js`에 정의된 리다이렉트는 서버 사이드 렌더링이나 초기 페이지 로드 시에만 적용되고, 클라이언트 측에서 라우팅(예: Next.js의 `Link` 컴포넌트를 클릭)할 때는 middleware가 존재하고 해당 경로와 일치하는 경우에만 적용된다는 뜻이다.
+
+Next.js는 요청 처리 시 다음과 같은 순서로 라우팅을 처리한다:
+
+1. next.config.js의 redirects 및 rewrites 설정 적용
+2. Middleware 실행
+3. 파일 시스템 기반 라우팅 매칭
+
+이런 처리 순서를 이해하면 우리가 겪은 문제의 원인과 해결 방법을 더 명확히 파악할 수 있다.
+
+### 4. Matcher로 미들웨어 최적화하기
+
+Next.js 미들웨어는 기본적으로 모든 경로에서 실행된다. 하지만 실제로는 특정 경로에서만 미들웨어가 필요한 경우가 많다. 이를 위해 matcher 설정을 활용할 수 있다:
+
+```typescript
+// 현재 미들웨어 설정
+export const config = {
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+};
+```
+
+이 설정은 api 라우트, 정적 파일, 이미지 등을 제외한 모든 경로에서 미들웨어를 실행하도록 지정한다. 이렇게 matcher를 잘 설정하면 불필요한 미들웨어 실행을 줄여 앱 성능을 높일 수 있다.
+
+## 마무리
+
+이번 경험을 통해 어쩌면 middleware의 관리가 잘못되고 있는 건 아닌가 생각함과 동시에 복잡한 프록시 환경과 쿠버네티스 인프라에서 Next.js 앱을 운영할 때 생길 수 있는 문제를 발견하고 이를 해결한 경험은 꽤나 유의미했다. 특히 호스트 정보를 정확하게 가져오는 방법과 Next.js의 다양한 리다이렉트 메커니즘 간의 상호작용을 이해하는 게 중요하다는 걸 깨달았다.
+
+이번 경험에서 얻은 교훈을 다른 Next.js 프로젝트에 적용할 때 도움될 체크리스트:
+
+- 복잡한 리다이렉트 로직은 가능하면 middleware에 구현하기
+- 프록시 환경에서는 항상 HTTP 헤더를 직접 활용하기
+- 개발 환경과 운영 환경의 차이점을 인지하고 테스트하기
+- 여러 레이어의 인프라를 사용할 때는 각 레이어에서 HTTP 헤더가 어떻게 처리되는지 확인하기
+
+앞으로는 백엔드 동료들과 함께 운영 환경에서 Next.js 서버의 로그를 더 자세히 분석해볼 생각이다. 특히 여러 프록시 레이어를 통과하면서 HTTP 헤더가 어떻게 바뀌는지, 그리고 이게 앱 동작에 어떤 영향을 미치는지 더 깊게 이해하고 싶다.
+
+## 참고
+
+- [Next.js Middleware 공식 문서](https://nextjs.org/docs/14/app/building-your-application/routing/middleware)
+- [Next.js Redirects 공식 문서](https://nextjs.org/docs/14/app/api-reference/next-config-js/redirects)
