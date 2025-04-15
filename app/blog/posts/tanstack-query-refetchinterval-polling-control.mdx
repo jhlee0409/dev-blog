@@ -1,0 +1,226 @@
+---
+title: "다운로드 상태에 따른 폴링 제어: TanStack Query refetchInterval 함수형 패턴"
+publishedAt: "2025-04-15"
+summary: "TanStack Query의 refetchInterval 함수형 패턴을 활용해 다운로드 상태에 따라 폴링을 자동으로 중단하는 방법을 알아봅니다."
+tags: "React, TanStack Query, 최적화, TypeScript"
+---
+
+프로젝트에서 다운로드 작업의 상태를 관리할 때, 불필요한 네트워크 요청을 줄이는 방법에 대해 알아보자. 특히 TanStack Query의 `refetchInterval`을 동적으로 활용하여 다운로드 완료 또는 실패 시 폴링을 자동으로 중단하는 패턴을 살펴본다.
+
+## 🔍 해결하려는 문제
+
+프로젝트에서 다음과 같은 다운로드 기능을 구현했다:
+
+- 사용자가 여러 아이템을 다운로드할 수 있음
+- 다운로드 요청은 전역 상태의 stack에 쌓임
+- 각 다운로드 진행 상황을 토스트 형태의 리스트로 표시
+- 다운로드가 완료되거나 실패하면 더 이상 상태 확인이 불필요
+
+이런 기능을 구현하기 위해 처음에는 단순히 고정 간격으로 폴링하는 방식을 사용했다:
+
+```tsx
+const query = useQueries({
+  queries: taskIds.map((id) => ({
+    queryKey: ["downloadTask", id],
+    queryFn: () => fetchDownloadStatus(id),
+    refetchInterval: 2500, // 모든 상태에서 항상 2.5초마다 refetch
+  })),
+});
+```
+
+이 방식의 문제는 다운로드가 완료되거나 실패해도 계속해서 API를 호출한다는 점이다.
+
+## 💡 `refetchInterval` 함수형 사용의 발견
+
+TanStack Query 문서에서 `refetchInterval`이 단순 숫자뿐만 아니라 함수도 받을 수 있다는 것을 발견했다:
+
+```typescript
+refetchInterval: number |
+  false |
+  ((query: Query) => number | false | undefined);
+```
+
+이 기능을 활용하면 각 쿼리의 상태에 따라 폴링 동작을 동적으로 제어할 수 있다.
+
+## 🛠️ 개선된 구현
+
+다음은 다운로드 상태에 따라 refetch를 중단하는 최적화된 코드이다:
+
+```tsx
+import { useQueries } from "@tanstack/react-query";
+
+type DownloadStatus = "pending" | "processing" | "complete" | "error";
+
+interface DownloadTask {
+  id: string;
+  fileName: string;
+  progress: number;
+  status: DownloadStatus;
+  error?: string;
+}
+
+const fetchDownloadTask = async (taskId: string): Promise<DownloadTask> => {
+  const response = await fetch(`/api/downloads/${taskId}`);
+  if (!response.ok) {
+    throw new Error("다운로드 상태 조회 실패");
+  }
+  return response.json();
+};
+
+export const useDownloadTasks = (
+  taskIds: string[],
+  options?: { enabled?: boolean }
+) => {
+  const { enabled = true } = options ?? {};
+
+  return useQueries({
+    queries: taskIds.map((taskId) => ({
+      queryKey: ["downloadTask", taskId],
+      queryFn: () => fetchDownloadTask(taskId),
+      enabled,
+      // 상태에 따라 refetchInterval 동적 설정
+      refetchInterval: (query) => {
+        const data = query.state.data as DownloadTask | undefined;
+
+        // 데이터가 없거나 진행 중인 상태일 때만 refetch
+        if (!data || (data.status !== "complete" && data.status !== "error")) {
+          return 2500; // 2.5초마다 refetch
+        }
+
+        return false; // 완료되거나 실패한 경우 refetch 중단
+      },
+    })),
+  });
+};
+```
+
+## 📋 실제 사용 예시
+
+이 훅을 사용하여 다운로드 토스트 목록을 표시하는 컴포넌트는 다음과 같다:
+
+```tsx
+import { useDownloadTasks } from "./useDownloadTasks";
+import { useDownloadStore } from "./store";
+
+const DownloadToastList = () => {
+  // 전역 상태에서 다운로드 작업 ID 목록 가져오기
+  const downloadTaskIds = useDownloadStore((state) => state.taskIds);
+
+  // 다운로드 작업 상태 조회 및 자동 폴링
+  const downloadTasksQueries = useDownloadTasks(downloadTaskIds);
+
+  return (
+    <div className="download-toast-container">
+      {downloadTasksQueries.map((query, index) => {
+        const task = query.data;
+        if (!task) return null;
+
+        return (
+          <div key={downloadTaskIds[index]} className="download-toast">
+            <h4>{task.fileName}</h4>
+
+            {task.status === "pending" && <span>대기 중...</span>}
+
+            {task.status === "processing" && (
+              <>
+                <progress value={task.progress} max="100" />
+                <span>{task.progress}%</span>
+              </>
+            )}
+
+            {task.status === "complete" && <span>완료됨!</span>}
+
+            {task.status === "error" && (
+              <span className="error">오류: {task.error}</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+```
+
+## 🔄 구현의 핵심 포인트
+
+이 패턴의 핵심은 `refetchInterval` 함수에서 쿼리 상태를 검사하는 부분이다:
+
+```typescript
+refetchInterval: (query) => {
+  const data = query.state.data as DownloadTask | undefined;
+
+  if (!data || (data.status !== "complete" && data.status !== "error")) {
+    return 2500; // 계속 폴링
+  }
+
+  return false; // 폴링 중단
+};
+```
+
+이 함수는 다음과 같은 로직으로 동작한다:
+
+1. 쿼리 객체의 현재 상태 데이터를 가져온다
+2. 데이터가 없거나 아직 진행 중인 상태면 2.5초마다 refetch 계속 수행
+3. 다운로드가 완료되거나 실패한 경우 `false`를 반환하여 폴링 중단
+
+## ⚙️ 실무 활용을 위한 확장 패턴
+
+이 기본 패턴을 더 발전시킬 수 있는 방법들:
+
+### 1. 상태별 다른 폴링 간격 적용
+
+```typescript
+refetchInterval: (query) => {
+  const data = query.state.data;
+  if (!data) return 3000; // 초기 상태는 3초
+
+  switch (data.status) {
+    case "pending":
+      return 5000; // 대기 중일 때는 5초
+    case "processing":
+      return 1000; // 진행 중일 때는 1초
+    default:
+      return false; // 완료 또는 실패 시 중단
+  }
+};
+```
+
+### 2. 진행률에 따른 폴링 간격 최적화
+
+```typescript
+refetchInterval: (query) => {
+  const data = query.state.data;
+  if (!data || data.status !== "processing") return 3000;
+
+  // 진행률이 높을수록 더 자주 폴링
+  return data.progress > 80 ? 500 : data.progress > 50 ? 1000 : 2000;
+};
+```
+
+### 3. 에러 상태에 따른 재시도 로직 추가
+
+```typescript
+refetchInterval: (query) => {
+  // 에러 발생 시 잠시 후 재시도 로직
+  if (query.state.error) {
+    return query.state.fetchFailureCount < 3 ? 5000 : false;
+  }
+
+  const data = query.state.data;
+  if (!data || data.status === "processing") return 2000;
+  return false;
+};
+```
+
+## 📚 추가 고려사항
+
+- **메모리 관리**: 완료된 작업은 일정 시간 후 전역 상태에서 제거하는 로직 추가
+- **일괄 취소**: 여러 다운로드를 한번에 취소할 수 있는 기능 구현
+- **오류 재시도**: 일시적 네트워크 오류에 대한 자동 재시도 메커니즘 추가
+- **백그라운드 처리**: 브라우저 탭이 비활성화될 때 폴링 간격 조정
+
+## 🧠 마치며
+
+TanStack Query의 `refetchInterval`을 함수로 사용하는 패턴은 실시간 상태 관리가 필요한 다양한 상황에서 유용하다. 이런 세밀한 최적화는 사용자 경험 향상과 서버 리소스 절약 두 가지 모두를 달성할 수 있게 해준다.
+
+다운로드 상태 관리, 실시간 알림, 대시보드 업데이트 등 다양한 시나리오에서 이 패턴을 응용해볼 수 있다. TanStack Query 문서를 통해 더 많은 고급 기능들을 확인해보는 것도 추천한다.
