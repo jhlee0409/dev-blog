@@ -1,0 +1,441 @@
+---
+title: "🎬 웹에서 구현한 다양한 비디오 Crop 방식 비교기"
+publishedAt: "2025-05-29"
+summary: "🎬 웹에서 구현한 다양한 비디오 Crop 방식 비교기"
+tags: "video, crop, canvas, fabric.js, pixi.js, editor"
+---
+
+## ✨ 개요
+
+회사에서 숏폼 영상 에디터 프로젝트를 진행하면서, 영상 프리뷰 위에 다양한 요소(영상 클립, 텍스트, 이미지, 배경 음악, 템플릿, 폰트, 블러 박스 등)를 표시할 수 있어야 했다.
+
+이를 위해 9:16 비율의 컨테이너를 구성하고, 그 안에 요소를 배치하였다. 요소는 기본적으로 드래그 앤 드롭(DnD)과 리사이징이 가능해야 했으며, 텍스트는 컨테이너 내에서 직접 수정할 수 있어야 했다.
+
+자막 포맷은 WebVTT 대신 `.ass`(Advanced SubStation Alpha)를 사용하였다. WebVTT는 단순한 텍스트 + 기존적인 스타일 표현만 가능하지만, ASS는 글꼴, 색상, 위치, 애니메이션 등 다양한 스타일을 지원한다. 또한, 서버에서 사용하는 `ffmpeg`와의 호환성을 고려하여 ASS를 채택하였다.
+
+이러한 기능들을 고려해서 다양한 레퍼런스 (capcut, canva 등 웹 기반의..) 참고했고 모두 canvas를 베이스로 가지고 간다는 것을 확인했다.
+그 다음으로는 어떤 방식으로 canvas를 활용해야할까 고민했다.
+
+먼저, 가장 빠르게 떠오른 것은 canvas api를 활용하는 것이었다. 어떤 방식으로 crop이 구현될까 했을 때, 가장 자료가 많았을 것이라 생각했고 역시나 그러했다.
+그리고 이전에 대학교 때 미디어의 2차 장작을 위한 draw 기반의 웹 에디터를 만들 때 사용했던 fabric이 떠올랐다. (벡터 기반이라 부드러운 drawing이 가능했다 라는 기억이 스쳐갔다) 너무 오래 전에 했던 프로젝트이기도 했고 crop을 구현해본적이 없었지만, DnD나 리사이징 등 나머지 기능들에 대해 구현이 가능하다는 것을 알고 있었다.
+마지막으로는 이번에 새롭게 찾은 pixi.js인데 게임 영상 편집 툴 dor를 만든 도르팀에서 쓴 개발아티클을 보고 알게 되었고 공식문서와 여러 자료들을 보고 충분히 검증해볼만하다 판단했다.
+
+결국 여러 기능을 충족할 수 있는 완벽한 솔루션은 없었고, 다양한 기술을 실험한 끝에 `fabric.js`를 기반으로 구현하게 되었다.
+다른 방식을 포기한 이유는 crop 기능 때문이 아니라 기타 다른 기능들을 구현한다고 했을 때 `fabric.js`를 사용하는 것에 비해 적절치 않았기 때문이다.
+
+이 글에서는 crop 기능을 중심으로 세 가지 기술 접근 방식을 비교하고, 최종 선택까지의 과정을 공유한다.
+
+---
+
+## 📦 Crop 데이터 구조
+
+서버에 전달하는 crop 정보는 다음 네 가지 필드로 구성된다.
+
+- `start_x` : crop을 시작할 x 좌표
+- `start_y` : crop을 시작할 y 좌표
+- `width` : crop할 가로 길이
+- `height` : crop할 세로 길이
+
+이 값들은 절대 픽셀값이 아니라, 원본 영상 해상도를 기준으로 한 **0~1 사이의 비율 값**이다.
+
+예를 들어, 해상도가 `1920×1080`인 영상에서 전체 영역을 지정하려면 `width: 1`, `height: 1`을 설정한다.
+
+---
+
+## 🧪 기술별 Crop 방식 비교
+
+각 기술들에 대한 기본적인 렌더링 방식과 배경 지식은 추후 자세히 다룰 예정이다.
+
+| 항목               | Canvas API               | Pixi.js        | Fabric.js                 |
+| ------------------ | ------------------------ | -------------- | ------------------------- |
+| **렌더링 방식**    | Canvas 2D                | WebGL + Canvas | Canvas 2D                 |
+| **정밀 crop 조정** | 좌표 기반 수동 계산 필요 | mask로 가능    | 객체에 직접 cropRect 주입 |
+
+---
+
+## 1️⃣ Canvas API 활용
+
+HTML `<video>` 태그와 `Canvas API`, `requestAnimationFrame()`을 활용한 방식이다.
+
+```tsx
+"use client";
+
+import { forwardRef, useCallback, useEffect, useRef } from "react";
+
+type Props = {
+  crop: { start_x: number; start_y: number; width: number; height: number };
+  url: string;
+  videoEl: HTMLVideoElement | null;
+  metadata: {
+    width: number;
+    height: number;
+  };
+};
+
+export default forwardRef<HTMLVideoElement, Props>(function VanillaVideoCanvas(
+  props,
+  ref
+) {
+  const { crop, url, videoEl, metadata } = props;
+  // 서버에서 제공해주는 metadata 값
+  const w = metadata.width;
+  const h = metadata.height;
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const requestRef = useRef<number>(0);
+  const cropRef = useRef(crop);
+
+  useEffect(() => {
+    // 매 프레임마다 render 호출 시 crop의 변화가 성능에 영향을 안주게끔 할당
+    cropRef.current = crop;
+  }, [crop]);
+
+  const render = useCallback(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx || !videoEl || videoEl.paused || videoEl.ended) return;
+
+    const crop = cropRef.current;
+
+    // 실질적으로 crop 영역을 계산하고 그리는 부분
+    // canvas에 그릴 pixel을 계산
+    ctx.drawImage(
+      videoEl,
+      w * crop.start_x, // 비디오 원본 width * crop의 x 값
+      h * crop.start_y, // 비디오 원본 height * crop의 y 값
+      w * crop.width, // 비디오 원본 width * crop의 width 값
+      h * crop.height, // 비디오 원본 height * crop의 height 값
+      0, // canvas에 그릴 x 좌표
+      0, // canvas에 그릴 y 좌표
+      canvas.width, // crop한 이미지를 canvas에 그릴 때 width
+      canvas.height // crop한 이미지를 canvas에 그릴 때 height
+    );
+
+    requestRef.current = requestAnimationFrame(render);
+  }, [w, h, videoEl]);
+
+  useEffect(() => {
+    if (!videoEl) return;
+
+    const onPlay = () => {
+      render();
+    };
+
+    videoEl.addEventListener("play", onPlay);
+    return () => {
+      // 클린업 함수를 통해 이벤트 중첩과 메모리 누수를 방지
+      videoEl.removeEventListener("play", onPlay);
+      cancelAnimationFrame(requestRef.current);
+    };
+  }, [render, videoEl]);
+
+  return (
+    <>
+      <div className="absolute left-0 top-0 z-10 h-full w-full">
+        <canvas
+          ref={canvasRef}
+          width={w}
+          height={h}
+          style={{ backgroundColor: "white" }}
+        />
+      </div>
+      <video
+        ref={ref}
+        className="invisible absolute left-0 top-0 h-full"
+        width={w}
+        height={h}
+        src={url}
+      />
+    </>
+  );
+});
+```
+
+### drawImage() 에 대해여
+
+drawImage는 HTML5 Canvas의 2D 렌더링 컨텍스트에서 이미지, 비디오, 다른 캔버스 등을 그릴 때 사용하는 메서드이다
+넘기는 인자의 수에 따라 넘기는 인자들이 다르다.
+
+```js
+drawImage(image, dx, dy);
+drawImage(image, dx, dy, dWidth, dHeight);
+drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
+```
+
+| 인자                   | 설명                                                                                                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **image**              | 캔버스에 그릴 원본 이미지 요소. 사용 가능한 타입은 HTMLImageElement, HTMLVideoElement, HTMLCanvasElement, ImageBitmap, OffscreenCanvas, VideoFrame 등 |
+| **sx** (optional)      | 원본 이미지에서 잘라낼 영역의 왼쪽 위 X 좌표                                                                                                          |
+| **sy** (optional)      | 원본 이미지에서 잘라낼 영역의 왼쪽 위 Y 좌표                                                                                                          |
+| **sWidth** (optional)  | 원본 이미지에서 잘라낼 영역의 너비                                                                                                                    |
+| **sHeight** (optional) | 원본 이미지에서 잘라낼 영역의 높이                                                                                                                    |
+| **dx**                 | 잘라낸 이미지를 캔버스에 그릴 위치의 X 좌표                                                                                                           |
+| **dy**                 | 잘라낸 이미지를 캔버스에 그릴 위치의 Y 좌표                                                                                                           |
+| **dWidth**             | 잘라낸 이미지를 캔버스에 그릴 때의 너비 (축소/확대 효과)                                                                                              |
+| **dHeight**            | 잘라낸 이미지를 캔버스에 그릴 때의 높이 (축소/확대 효과)                                                                                              |
+
+요약하자면
+
+| 목적                                 | 사용 예                 |
+| ------------------------------------ | ----------------------- |
+| 이미지/비디오의 일부를 잘라서 그리기 | sx, sy, sWidth, sHeight |
+| 위치 조정                            | dx, dy                  |
+| 리사이징 (스케일링)                  | dWidth, dHeight         |
+
+### ✅ 장점
+
+- crop 기능 자체는 간단하게 구현 가능하다.
+- 브라우저 호환성과 성능 모두 양호하다.
+
+### ❌ 한계
+
+- 다른 요소인 텍스트를 구현한다고 했을 때 브라우저에서 표시하는 text로는 텍스트 외곽선, 색상 등 스타일 표현에 제약이 있다.
+- 타임라인에 추가된 요소의 수에 따라 컨테이너에 요소의 노출 여부를 제어하는 로직이 복잡했고 위치의 경우 transform를 사용하기는 하지만 이 사이즈의 경우 reflow가 빈번하게 일어나니 또한 분명 성능에 영향이 있다고 판단했다.
+
+### 📌 판단
+
+Crop만 놓고 보면 간단하고 빠르지만, 전체적인 기능 요구사항을 충족하지 못하여 도입하지 않았다.
+
+---
+
+## 2️⃣ Pixi.js 활용
+
+`Pixi.js`는 WebGL 기반의 2D 렌더링 엔진입니다.
+Canvas보다 고성능이며, DOM이 아닌 GPU를 사용하는 렌더 트리 기반 구조이다.
+
+> 즉, DOM을 사용하지 않고, 브라우저의 `canvas`를 이용해 모든 요소를 텍스처 기반으로 직접 렌더링한다.
+
+여기서는 v8 기준으로 작성되었다.
+
+```tsx
+// PIXI.Application은 Pixi.js의 최상위 컨트롤러 객체
+// Pixi 프로젝트를 실행하기 위해 필요한 요소들을 한 번에 구성하고 관리해주는 객체이다.
+const app = new PIXI.Application();
+await app.init({
+  // options...
+});
+
+const video: HTMLVideoElement;
+video.src = videoUrl;
+
+// 1. Container 생성
+// Container는 DOM의 <div>처럼 자식 디스플레이 오브젝트를 관리하는 계층 구조 객체
+// 내부적으로 children 배열을 가지고, 좌표 변환 및 렌더 순서를 조정
+const container = new PIXI.Container({
+  label: "video-container",
+});
+
+// 2. 생성한 컨테이너를 app에 추가
+// app.stage는 Pixi에서 렌더링 트리의 최상위 루트이다.
+// HTML의 <body>처럼, Pixi에서 모든 시각적 요소(Sprite, Container, Text 등)는 무조건 stage 아래에 존재해야 화면에 그려진다.
+// 자식 노드를 트리 형태로 계층적으로 관리
+app.stage.addChild(container);
+
+const videoLoadPromise: Promise<HTMLVideoElement> = new Promise((resolve) => {
+  // 비디오 재생이 중단 없이 가능한지 확인
+  video.addEventListener(
+    "canplaythrough",
+    () => {
+      resolve(video);
+    },
+    { once: true }
+  );
+});
+
+// 3. 비디오가 완전히 로드될 때까지 기다림
+const loadedVideo = await videoLoadPromise;
+
+// 4. 로드된 후에만 텍스처 생성
+// 내부적으로 WebGL TEXTURE_2D로 업로드
+const videoTexture = PIXI.Texture.from(video);
+
+// 5. 렌더를 위한 sprite 생성
+// sprite는 해당 텍스처를 사용하는 렌더 가능한 객체
+// 마치 <img> 태그처럼 Pixi 내부에서 그려질 수 있는 노드
+const videoSprite = new PIXI.Sprite(videoTexture);
+```
+
+🔍 내부 동작 요약:
+• HTMLVideoElement의 current frame → canvas → WebGL texture로 복사
+• GPU에서 이 텍스처를 샘플링하여 Sprite로 렌더
+
+```tsx
+// videoWidth와 videoHeight 어디에 어떻게 그리느냐에 따라 기준이 달라진다.
+// e.g.) 영상 원본 크기 기준이냐, 컨테이너의 크기 기준이냐
+const cropX = crop.start_x * videoWidth;
+const cropY = crop.start_y * videoHeight;
+const cropWidth = crop.width * videoWidth;
+const cropHeight = crop.height * videoHeight;
+
+const mask = new PIXI.Graphics().rect(cropX, cropY, cropWidth, cropHeight);
+
+videoSprite.setMask({
+  mask,
+  inverse: false,
+});
+
+// Container는 모든 자식의 렌더 트리를 관리
+// 이후 app.stage.addChild(container) 처럼 루트 스테이지에 붙이면 최종적으로 렌더됨
+container.addChild(videoSprite, mask);
+```
+
+1. 비디오 요소를 비동기적으로 로드하고, canplaythrough 시점을 기준으로 텍스처를 생성한다.
+2. crop 좌표는 normalized 값(0~1) 기준으로 계산하여 마스크를 구성한다.
+3. setMask는 v8에서 제공되며, v7 이하에서는 .mask 속성으로 설정해야 한다.
+4. 재생의 경우 react를 사용한다면 ref에 할당하여 제어 가능하다
+   - Sprite를 통해 접근하고 싶다면 `videoSprite.texture.source.resource`
+   - Texture를 통해 접근하고 싶다면 `videoTexture.source.resource`
+   - `resource`는 GPU에 업로드될 리소스이며. 여기서 ImageBimt / Canvas / Video 등에서 픽셀을 가져온다
+
+### ⚙️ setMask의 동작 방식
+
+#### setMask 란?
+
+• PIXI.DisplayObject의 메서드로, 해당 객체에 마스크를 설정한다.
+• mask는 PIXI.Graphics 또는 PIXI.Sprite 등 마스크로 사용할 수 있는 렌더러 대상
+• `inverse`는 마스크 반전 여부를 지정 (기본값: false)
+
+#### 동작 방식
+
+1. 렌더링 시 마스크가 먼저 렌더링됨
+   • GPU 스텐실 버퍼(stencil buffer)를 사용해 마스킹 처리
+2. 마스크 영역 외의 픽셀은 알파값 0으로 처리
+3. `inverse: true`일 경우 → 마스크 밖이 보이고, 안이 잘림
+
+### ✅ 장점
+
+- GPU 가속을 통해 성능이 뛰어나다.
+- crop은 mask 객체를 활용하여 구현할 수 있다.
+
+### ❌ 한계
+
+- 블러 효과 구현이 어렵다.
+  - pixi의 filter에도 blur가 있지만 이는 blur를 적용할 픽셀들이 필요했고 이는소스들이 있어야함을 말한다.
+    - 여기서의 블러 효과는 빈 박스에 블러를 표현하여 원하는 영역에 위치함을 의미
+    - 이 블러 영역 아래에 다양한 요소들이 겹침
+    - css의 backdrop-filter를 통해 가능하지만 이는 요소간 레이어 관리가 불가능 했다.
+- 텍스트 입력 처리에서 줄바꿈, 커서 위치, 리사이징 등의 문제가 발생한다.
+  - 이를 도와주는 라이브러리로 pixi/ui 가 있었지만 한계가 있었다.
+    - 사용자가 만든 커스텀 텍스트 입력 라이브러리가 있었지만 사용하기에는 무리가 있었다.
+- 커스터마이징이 가능하더라도 안정성 확보가 어렵다.
+- WebGL 기반의 라이브러를 다루는 것이 처음이었기에 높은 러닝커브가 요구되었고, 제대로 다루기 위해서는 시간이 필요한 것은 불가피 했다. 듀데이트를 고려 힘들다고 판단.
+
+### 📌 판단
+
+렌더링 성능은 우수하지만, 영상 편집기 요구사항에 맞는 기능을 안정적으로 제공하기 어려워 도입하지 않았다.
+빠르게 기능 검증하느라 놓쳤던 WebGL 개념에 대해 제대로 학습해보고 싶다는 생각도 들었다.
+
+---
+
+## 3️⃣ Fabric.js 활용 (최종 선택)
+
+`fabric.js`는 canvas 기반의 객체 모델을 제공하며, 다양한 요소를 독립적으로 조작할 수 있다.
+
+fabric 자체에서는 crop을 구현할 수 있는 기능이 없었기에 [레퍼런스](https://codepen.io/jamesdeantv/pen/QoqXbY)를 찾아 커스텀한 후, 이를 TypeScript 환경에 맞춰 리팩터링하였다.
+
+> 해당 레퍼런스는 fabric 1.7.1 버전 이어서 너무 오래된 버전이기도 했고 현재는 6.x 버전을 사용하고 있다
+> v6로 넘어오면서 라이브러리 내 메소드들의 변화가 너무 많았고 바이브 코딩을 통해 최대한 현재 버전에 호환되는 class를 구현했다.
+> ![](https://velog.velcdn.com/images/jhlee0409/post/ac98a3a0-e5f2-4ba5-ada1-c3828afca796/image.png)
+> 무려 8년 전!
+
+```tsx
+type FabricImageProps = fabric.ImageProps & {
+  cropRect: { x: number; y: number; w: number; h: number };
+};
+
+// CropVideo 클래스 정의
+class CropVideo extends fabric.FabricImage {
+  static type = "crop-video";
+  cropRect?: { x: number; y: number; w: number; h: number };
+
+  constructor(
+    element: HTMLVideoElement | HTMLImageElement,
+    options?: FabricImageProps
+  ) {
+    const defaultOpts = {
+      // ...기본 옵션
+    };
+
+    super(element as any, Object.assign({}, defaultOpts, options));
+    this.cropRect = options?.cropRect;
+  }
+
+  _draw(ctx: CanvasRenderingContext2D) {
+    const element = this.getElement() as HTMLVideoElement;
+    const c = this.cropRect;
+    const d = {
+      x: -this.width / 2,
+      y: -this.height / 2,
+      w: this.width,
+      h: this.height,
+    };
+
+    if (c) {
+      ctx.drawImage(element, c.x, c.y, c.w, c.h, d.x, d.y, d.w, d.h);
+    } else {
+      ctx.drawImage(element, d.x, d.y, d.w, d.h);
+    }
+  }
+
+  _render(ctx: CanvasRenderingContext2D) {
+    this._draw(ctx);
+  }
+}
+
+(fabric as any).CropVideo = CropVideo;
+
+class CropVideo extends fabric.FabricImage {
+  static type: string;
+  cropRect?: { x: number; y: number; w: number; h: number };
+  constructor(element: HTMLVideoElement | HTMLImageElement, options?: any);
+  _draw(ctx: CanvasRenderingContext2D, w: number, h: number): void;
+  _render(ctx: CanvasRenderingContext2D): void;
+}
+
+// ======= 실제 사용 =======
+
+// CropVideo 클래스 직접 사용
+const fabricVideo = new fabric.CropVideo(videoElement, {
+  // option
+});
+
+// 성능 최적화: 좌표 업데이트
+fabricVideo.setCoords();
+
+// 캔버스에 비디오 객체 추가
+canvas.add(fabricVideo);
+```
+
+### ✅ 장점
+
+- 텍스트, 이미지, 영상 등 다양한 요소를 독립적으로 제어할 수 있다.
+- 요소 간 레이어 우선순위 및 정렬 처리가 명확하다.
+- 커스터마이징 및 확장성이 뛰어나고, 유지보수도 용이하다.
+
+### ❌ 한계
+
+- 학습 곡선이 약간 존재한다.
+- 일부 기능은 직접 구현해야 한다.
+- fabric에서도 블러 효과를 구현하는 데에 문제가 있었다.
+  - 레이어 관리를 어떻게 할까하다가 블러의 객체가 DnD, 리사이징 중일 때는 fabric 내에 표시 가능한 객체(e.g. 노란색 박스)로 각 요소들 간의 레이어 우선순위를 보여주고 이벤트가 끝났을 때는 backdrop-filter 가 적용된 박스를 렌더하도록 했다.
+  - 완벽한 대안은 아니기에 추후 개선이 필요했다.\
+
+### 📌 판단
+
+가장 안정적으로 프로젝트 요구사항을 만족하여 최종 선택한 방식이다.
+
+---
+
+## 🔚 마무리
+
+세 가지 기술을 직접 구현하고 비교하면서 crop 기능뿐 아니라, 전체 에디터의 구조와 확장성을 고려한 의사결정을 하게 되었다.
+
+단순히 잘 보이는 UI를 넘어서, 여러 비디오 소스 기반의 시간 및 재생 제어, 텍스트 입력, 각 요소들의 스타일 커스터마이징, 레이어 처리 등 복합적인 요구를 충족하려면 많은 실험과 시행착오가 필요했다.
+
+아직도 많은 시행착오를 겪는 중이다...
+
+---
+
+## 참조
+
+- https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage
