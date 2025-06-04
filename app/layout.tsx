@@ -11,15 +11,15 @@ import { ThemeProvider } from "next-themes";
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: "devunpacker",
-    template: "%s | devunpacker",
+    default: "Devunpacker",
+    template: "%s | Devunpacker",
   },
   description: "This is my technical blog.",
   openGraph: {
-    title: "My Technical Blog",
+    title: "Devunpacker",
     description: "This is my technical blog.",
     url: baseUrl,
-    siteName: "My Technical Blog",
+    siteName: "Devunpacker",
     locale: "ko_KR",
     type: "website",
   },
