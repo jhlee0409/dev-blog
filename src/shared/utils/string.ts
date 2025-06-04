@@ -11,3 +11,16 @@ export const capitalizeFirstLetter = (str: string): string => {
   if (!str) return str;
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
+
+export function slugify(node: React.ReactNode) {
+  const str = node?.toString();
+  if (!str || str.includes("title")) {
+    return null;
+  }
+  return str
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/&/g, "-and-")
+    .replace(/[^a-zㄱ-ㅎㅏ-ㅣ가-힣0-9-]/g, "");
+}
