@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
-import { formatDate, getBlogPosts } from "app/blog/utils";
-import { baseUrl } from "app/sitemap";
+import { formatDate, getBlogPosts } from "@/app/blog/utils";
+import { baseUrl } from "@/app/sitemap";
 import Image from "next/image";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
-import Giscus from "app/components/Giscus";
-import { capitalizeFirstLetter } from "src/shared/utils/string";
-import matter from "gray-matter";
+import Giscus from "@/app/components/Giscus";
+import { capitalizeFirstLetter } from "@/src/shared/utils/string";
 
 export default async function Page({
   params,
@@ -20,7 +19,7 @@ export default async function Page({
     notFound();
   }
 
-  const { default: Post } = await import(`../../../src/contents/${slug}.mdx`);
+  const { default: Post } = await import(`@/src/contents/${slug}.mdx`);
 
   return (
     <section>
