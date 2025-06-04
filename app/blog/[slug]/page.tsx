@@ -97,14 +97,14 @@ export default async function Page({
       <article className="prose">
         <Post />
       </article>
-      <div className="w-full h-0.5 bg-black dark:bg-white" />
+      <div className="mt-10 w-full h-0.5 bg-black dark:bg-white" />
       <Giscus
         repo="jhlee0409/dev-blog"
         repoId="R_kgDONr9TmQ"
         category="Announcements"
         categoryId="DIC_kwDONr9Tmc4CmW3V"
       />
-      <div className="w-full h-0.5 bg-black dark:bg-white" />
+      <div className="mt-2 w-full h-0.5 bg-black dark:bg-white" />
     </section>
   );
 }
