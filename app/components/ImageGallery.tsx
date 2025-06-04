@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { cn } from "src/shared/utils";
 
 interface ImageInfo {
   src: string;
@@ -27,18 +28,15 @@ export function ImageGallery({
 
   return (
     <div className="w-full flex justify-center py-4">
-      <div className={`w-full max-w-4xl ${getGridCols(images.length)} gap-4`}>
+      <div
+        className={cn(
+          `w-full max-w-4xl gap-4`,
+          fullWidth && "w-full",
+          getGridCols(images.length)
+        )}
+      >
         {images.map((image, index) => (
-          <div
-            key={index}
-            className={
-              images.length === 1
-                ? fullWidth
-                  ? "w-full"
-                  : "w-3/4 md:w-1/2"
-                : "w-full"
-            }
-          >
+          <div key={index} className={cn('"w-full')}>
             <div className="relative aspect-auto max-h-full overflow-hidden">
               <Image
                 src={image.src}

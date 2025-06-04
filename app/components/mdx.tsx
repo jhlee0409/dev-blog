@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { MDXRemote } from "next-mdx-remote/rsc";
+import { MDXRemote } from "next-mdx-remote-client/rsc";
 import React from "react";
 import { ImageGallery } from "./ImageGallery";
 import { Badge } from "./Badge";
@@ -64,7 +64,7 @@ function RoundedImage(props) {
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import darcula from "react-syntax-highlighter/dist/cjs/styles/prism/one-dark";
 
-function Code({ children, ...props }) {
+export function Code({ children, ...props }) {
   // className이 없으면 인라인 코드로 처리
   if (!props.className) {
     // Badge로 처리할 특수 문자열 체크
@@ -150,7 +150,7 @@ let components = {
   Table,
 };
 
-export async function CustomMDX(props) {
+export function CustomMDX(props) {
   return (
     <MDXRemote
       {...props}

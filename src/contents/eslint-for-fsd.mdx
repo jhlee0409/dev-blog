@@ -1,0 +1,148 @@
+---
+title: "FSD eslint 설정"
+publishedAt: "2025-02-02"
+summary: "FSD 아키텍처에서 적용할 수 있는 eslint 설정"
+tags: "eslint, FSD, frontend-design-pattern"
+---
+
+# FSD 아키텍처를 위한 ESLint 설정
+
+대규모 프로젝트에서 FSD(Feature-Sliced Design)를 적용하면서도 구조적 일관성을 유지하는 것은 쉽지 않다. 특히 여러 개발자가 협업하는 환경에서는 더욱 그렇다. 이번 글에서는 ESLint 설정을 통해 FSD 구조를 더욱 견고하게 만드는 방법을 실제 적용 사례와 함께 살펴본다.
+
+## FSD와 Import 규칙의 상관관계
+
+FSD의 핵심은 계층 간 명확한 의존성 관리다. 상위 계층은 하위 계층을 알 수 있지만, 하위 계층은 상위 계층을 알 수 없다. 이러한 단방향 의존성은 코드의 예측 가능성을 높이고 유지보수를 쉽게 만든다.
+
+실제로 많은 개발자들이 다음과 같은 실수를 하게 된다:
+
+```typescript
+// 흔히 발견되는 잘못된 import 순서
+import { UserProfile } from "@/entities/user";
+import { Button } from "@/shared/ui";
+import { apiClient } from "@/shared/api";
+import { ProfileWidget } from "@/widgets/profile";
+import React from "react";
+```
+
+이러한 코드는 몇 가지 문제를 가지고 있다:
+
+1. 내장 모듈(React)이 마지막에 위치
+2. shared 모듈들이 중간에 산재
+3. 계층 간 의존성이 명확하지 않음
+
+ESLint 설정을 통해 다음과 같이 자동으로 정리할 수 있다:
+
+```typescript
+import React from "react";
+
+import { apiClient } from "@/shared/api";
+import { Button } from "@/shared/ui";
+import { UserProfile } from "@/entities/user";
+import { ProfileWidget } from "@/widgets/profile";
+```
+
+## ESLint 설정의 실제 효과
+
+우리가 적용한 ESLint 설정의 핵심은 `import/order` 규칙이다. 이 규칙은 다음과 같은 실질적인 이점을 제공한다:
+
+1. **자동화된 import 정리**
+
+   - 수동으로 import 순서를 관리할 필요가 없음
+   - 저장 시 자동 포맷팅으로 시간 절약
+   - 일관된 코드 스타일 유지
+
+2. **계층 간 의존성 시각화**
+
+   - import 순서를 통해 의존성 흐름을 한눈에 파
+
+     악
+
+   - 잘못된 의존성 관계를 빠르게 발견
+
+3. **팀 협업 개선**
+   - 코드 리뷰 시간 단축
+   - 불필요한 스타일 논쟁 방지
+   - 신규 입사자의 빠른 적응 지원
+
+## 자동화와 품질 향상
+
+### VSCode 설정
+
+```json
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  }
+}
+```
+
+### package.json 스크립트
+
+```json
+{
+  "scripts": {
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix"
+  }
+}
+```
+
+## 실제 적용 시나리오
+
+### 시나리오 1: 계층 간 잘못된 참조
+
+```typescript
+// Before: 계층 구조 위반
+import { AuthFeature } from "@/features/auth";
+import { Layout } from "@/shared/ui/layout";
+import { ProfilePage } from "@/pages/profile";
+import { UserEntity } from "@/entities/user";
+
+// After: 계층 구조 준수
+import { Layout } from "@/shared/ui/layout";
+import { ProfilePage } from "@/pages/profile";
+import { AuthFeature } from "@/features/auth";
+import { UserEntity } from "@/entities/user";
+```
+
+### 시나리오 2: shared 모듈 관리
+
+```typescript
+// Before: 분산된 shared 모듈
+import { Button } from "@/shared/ui";
+import { UserProfile } from "@/entities/user";
+import { apiClient } from "@/shared/api";
+
+// After: 그룹화된 shared 모듈
+import { apiClient } from "@/shared/api";
+import { Button } from "@/shared/ui";
+import { UserProfile } from "@/entities/user";
+```
+
+## 성능 최적화 팁
+
+불필요한 import를 방지하고 번들 크기를 최적화하기 위해 다음과 같은 방식을 사용한다:
+
+```typescript
+// 최적화 전: 전체 모듈 import
+import { everything } from "@/shared/utils";
+
+// 최적화 후: 필요한 함수만 import
+import { specificFunction } from "@/shared/utils/specificFile";
+```
+
+## 결론
+
+ESLint를 통한 import 규칙 관리는 단순한 코드 스타일 통일 이상의 가치를 제공한다. FSD 아키텍처의 근간인 계층 간 의존성을 효과적으로 관리할 수 있게 해주며, 이는 곧 프로젝트의 유지보수성과 확장성 향상으로 이어진다.
+
+특히 다음과 같은 상황에서 그 진가를 발휘한다:
+
+- 새로운 팀원 온보딩
+- 레거시 코드 리팩토링
+- 대규모 프로젝트의 구조 개선
+
+이러한 설정은 단순히 린트 규칙을 추가하는 것에서 끝나지 않는다. 이는 프로젝트의 아키텍처를 지키고 발전시키는 중요한 도구가 된다.
+
+---
+
+더 궁금하신 부분이 있거나, 실제 프로젝트에서 적용하면서 발생할 수 있는 특정 시나리오에 대해 논의하고 싶으시다면 댓글로 남겨주세요.
