@@ -24,7 +24,7 @@ export default async function Page({
   return (
     <section>
       <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6927905151492991"
-     crossorigin="anonymous"></script>
+     crossOrigin="anonymous"/>
       <script
         type="application/ld+json"
         suppressHydrationWarning
