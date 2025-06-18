@@ -50,10 +50,6 @@ export default function RootLayout({
         src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6927905151492991"
         strategy="beforeInteractive"
         crossOrigin="anonymous"
-        onLoad={() => {
-          (window as any).adsbygoogle = (window as any).adsbygoogle || [];
-          (window as any).adsbygoogle.push({});
-        }}
       />
       <body className={cx("antialiased min-h-screen")}>
         <ThemeProvider attribute="class">
