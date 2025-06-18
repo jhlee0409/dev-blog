@@ -7,6 +7,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import Footer from "./components/footer";
 import { baseUrl } from "./sitemap";
 import { ThemeProvider } from "next-themes";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
@@ -45,6 +46,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
+      <Script
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6927905151492991"
+        strategy="beforeInteractive"
+        crossOrigin="anonymous"
+        onLoad={() => {
+          (window as any).adsbygoogle = (window as any).adsbygoogle || [];
+          (window as any).adsbygoogle.push({});
+        }}
+      />
       <body className={cx("antialiased min-h-screen")}>
         <ThemeProvider attribute="class">
           <div className="max-w-4xl mb-40 flex flex-col md:flex-row mx-4 mt-8 lg:mx-auto">
