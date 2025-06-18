@@ -39,7 +39,7 @@ export default async function Page({
             keywords: post.metadata.tags?.join(", "),
             image: post.metadata.image
               ? `${baseUrl}${post.metadata.image}`
-              : `/og?title=${encodeURIComponent(post.metadata.title)}`,
+              : `${baseUrl}/api/og?title=${encodeURIComponent(post.metadata.title)}`,
             url: `${baseUrl}/blog/${post.slug}`,
             author: {
               "@type": "Person",
@@ -127,7 +127,7 @@ export async function generateMetadata({ params }) {
   } = post.metadata;
   let ogImage = image
     ? image
-    : `${baseUrl}/og?title=${encodeURIComponent(title)}`;
+    : `${baseUrl}/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description || '')}`;
 
   return {
     title,
