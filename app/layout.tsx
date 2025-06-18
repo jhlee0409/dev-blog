@@ -108,12 +108,13 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-      </head>
       <Script
         src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6927905151492991"
         strategy="beforeInteractive"
         crossOrigin="anonymous"
-      />
+        />
+        </head>
+
       <body className={cx("antialiased min-h-screen")}>
         <ThemeProvider attribute="class">
           <div className="max-w-4xl mb-40 flex flex-col md:flex-row mx-4 mt-8 lg:mx-auto">
