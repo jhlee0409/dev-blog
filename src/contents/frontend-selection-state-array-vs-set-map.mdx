@@ -1,0 +1,301 @@
+---
+title: 프론트엔드 선택 상태, 배열로 괜찮을까?
+publishedAt: "2025-06-21"
+summary: 선택 상태를 배열로 관리할 때의 문제와 Set, Map, WeakMap을 활용한 실용적인 해결 방법을 설명합니다.
+tags: "frontend, javascript, react, set, map, weakmap, array"
+---
+
+프론트엔드에서 다중 선택 기능, 예를 들어 체크박스 목록이나 테이블 행 선택을 구현할 때, 많은 개발자가 자연스럽게 배열을 떠올린다. React 환경이라면 상태의 불변성을 지키기 위해 다음과 같은 `toggle` 함수를 작성하는 것이 일반적이다.
+
+```javascript
+// 일반적인 배열 기반 선택 토글 함수
+function toggle(selectedItems, itemToToggle) {
+  const isSelected = selectedItems.some(item => item.id === itemToToggle.id);
+
+  if (isSelected) {
+    // 선택 해제: filter로 새로운 배열 생성
+    return selectedItems.filter(item => item.id !== itemToToggle.id);
+  } else {
+    // 신규 선택: spread syntax로 새로운 배열 생성
+    return [...selectedItems, itemToToggle];
+  }
+}
+```
+
+이 코드는 React의 원칙을 잘 따르고 있으며, 대부분의 상황에서 훌륭하게 동작한다. 하지만 이 '표준적인' 방식에도 숨겨진 비효율이 있다. 만에 하나 선택 가능한 항목의 수가 수천, 수만 개로 늘어난다면 어떨까?
+
+`some()`과 `filter()`는 내부적으로 배열 전체를 순회(O(n))한다. 데이터가 많아질수록 작은 인터랙션 하나하나가 애플리케이션의 반응성을 떨어뜨리는 원인이 될 수 있다.
+
+이 글에서는 이처럼 표준적으로 사용되는 배열 기반 관리 방식의 성능 한계를 살펴보고, `Set`과 `Map` 같은 더 효율적인 방법들을 활용하여 어떻게 더 빠르고 안정적인 코드를 작성할 수 있는지 구체적으로 살펴본다.
+
+---
+
+## ✅ 선택 상태 관리, 왜 다시 고민해야 할까?
+
+개발을 하다 보면 사용자가 여러 항목을 동시에 선택할 수 있는 기능을 자주 구현하게 된다.
+체크박스, 테이블의 row 선택, 태그 선택 등 다양한 곳에서 사용자의 선택 항목을 상태로 관리해야 하는 경우가 많다.
+
+처음에는 아래의 코드와 같이 배열로 간단히 처리하곤 한다.
+
+```javascript
+// 나쁜 예: 배열을 직접 수정하는 방식
+const selectedItems = [];
+
+function select(item) {
+  if (!selectedItems.includes(item)) {
+    selectedItems.push(item); //  Danger: 원본 배열을 직접 수정
+  }
+}
+```
+
+하지만 이 방식은 **React와 같은 현대 프레임워크에서는 예상치 못한 문제를 일으킬 수 있다.** 상태 객체의 참조가 바뀌지 않아 리렌더링이 되지 않는 등 사이드 이펙트를 일으킬 수 있다.
+
+React와 같은 프레임워크에서는 상태의 **불변성(immutability)** 을 지키는 것이 중요하다.
+
+```javascript
+// 좋은 예: 항상 새로운 배열을 반환하는 방식
+const handleAddItem = (selectedItems, newItem) => {
+  // 아이템 추가: spread syntax로 새 배열 생성
+  return [...selectedItems, newItem];
+};
+
+const handleRemoveItem = (selectedItems, itemToRemove) => {
+  // 아이템 제거: filter로 새 배열 생성
+  return selectedItems.filter(item => item.id !== itemToRemove.id);
+};
+```
+
+이처럼 `filter`나 spread syntax를 사용하는 것이 정석이지만, 이 방식조차 데이터 양이 많아지면 여러 비효율이 발생할 수 있다.
+왜냐하면 이들 메서드는 기존 배열을 전부 순회하면서 **조건에 맞는 항목을 걸러내거나, 새로운 배열을 생성**하기 때문이다.
+매번 새로운 배열이 메모리에 생성되면서, 불필요한 GC 비용까지 발생할 수 있다.
+
+---
+
+## 🧩 배열로 선택 상태를 관리할 때 발생하는 문제
+
+### 1. 선택 항목이 많아질수록 느려진다
+
+```javascript
+selectedItems.includes(item)
+```
+
+`includes()`는 배열을 처음부터 끝까지 순회하며 비교한다. 항목 수가 적을 때는 문제가 없지만,
+선택 항목이 수천 개 이상 되거나 렌더링 중 반복 호출되는 구조에서는 성능 저하가 발생한다.
+
+- 시간 복잡도는 O(n)이다.
+- 항목 수가 많아질수록 탐색 시간도 비례해 증가한다.
+- 반복 호출 시 병목 현상이 발생할 수 있다.
+
+### 2. 배열을 직접 수정하면 상태 변경이 감지되지 않는다
+
+```javascript
+selectedItems.splice(index, 1);
+setSelectedItems(selectedItems);
+```
+
+React는 상태가 변경되었는지를 참조(주소)가 바뀌었는지 여부로 판단한다.
+`splice()`는 배열을 직접 수정하기 때문에 참조가 동일하게 유지된다. 이 경우 React는 이전 상태와 새로운 상태가 같다고 판단해, 리렌더링을 트리거하지 않는다.
+
+이로 인해 화면이 리렌더링되지 않는 문제가 발생한다. 이는 상태 관리를 잘못할 때 자주 발생하는 버그이다.
+
+### 3. 객체 비교가 실패한다
+
+```javascript
+selectedItems.includes({ id: 1 }); // false
+```
+
+개발자가 실수로 동일한 객체를 비교한다고 생각하는 경우가 많지만, 실제로는 메모리 주소가 다르면 항상 false를 반환하므로 조심해야 한다.
+
+자바스크립트는 객체를 비교할 때 내용을 비교하지 않고, 메모리 주소(참조)를 기준으로 비교한다.
+따라서 구조가 동일하더라도 다른 객체는 `includes()`에서 항상 false를 반환한다.
+
+```javascript
+const a = { id: 1 };
+const b = { id: 1 };
+a === b; // false
+```
+
+**해결 방법: 직접 비교 조건을 사용하는 방식**
+
+```javascript
+// 특정 ID가 포함되어 있는지 확인
+selectedItems.some(item => item.id === 1); // true
+
+// 특정 ID를 가진 항목 제거
+const filtered = selectedItems.filter(item => item.id !== 1);
+```
+
+`some()`이나 `filter()`는 개발자가 조건을 명시적으로 지정할 수 있으므로,
+객체의 참조 비교 한계를 우회할 수 있다.
+
+---
+
+## 🔒 객체를 Object로 관리할 때 주의할 점
+
+### 1. 내장 키와 충돌할 수 있다
+
+일반 객체(`{}`)는 `Object.prototype`을 상속한다. 이 안에는 `toString`, `constructor` 등과 같은 기본 속성이 포함되어 있어,
+이들과 사용자 정의 키가 충돌할 경우 에러가 발생한다.
+
+```javascript
+const selected = Object.create(null); // 안전한 빈 객체 생성 (프로토타입 없음)
+selected["hasOwnProperty"] = true;
+
+// 이제 selected에는 hasOwnProperty 함수가 아예 없음
+console.log(Object.prototype.hasOwnProperty.call(selected, "hasOwnProperty")); // true (우회 호출)
+console.log(selected.hasOwnProperty("hasOwnProperty")); // ❌ Uncaught TypeError: selected.hasOwnProperty is not a function
+```
+
+원래 함수여야 할 `hasOwnProperty`가 덮어씌워지는 예시이다.
+Object.prototype을 상속받은 일반 객체에서 `hasOwnProperty` 같은 내장 메서드를 덮어쓸 경우, 기존 함수가 무시되며 호출 시 오류가 발생한다.
+
+### 2. 객체를 키로 사용할 수 없다
+
+```javascript
+const obj1 = { id: 1 };
+const obj2 = { id: 1 };
+
+const selected = {};
+selected[obj1] = "A";
+selected[obj2] = "B";
+
+console.log(selected); // {[object Object]: 'B'}
+```
+
+일반 객체의 키는 문자열 또는 심볼만 가능하기 때문에, 객체를 키로 사용하면 내부적으로 `toString()`이 호출되어 `"[object Object]"`로 변환된다.
+이로 인해 서로 다른 객체도 동일한 문자열 키로 취급되어 값이 덮어쓰기된다.
+
+---
+
+이처럼 배열은 간단한 사용에는 적합하지만, 상태 관리의 복잡도가 높아지면 성능과 안정성에서 점점 한계가 나타난다.
+그렇다면 이 문제를 어떻게 해결할 수 있을까? 자바스크립트에는 이러한 문제를 해결할 수 있는 다양한 방법들이 있다.
+
+---
+
+## 🧠 이럴 때 유용한 방법들: Set, Map, WeakMap
+
+### ✅ Set: 중복 없는 값 관리
+
+Set은 고유한 값만 저장하는 객체이다.
+선택 상태처럼 중복 없이 값의 존재 여부만 판단하면 되는 경우에 최적의 성능을 제공한다.
+
+```javascript
+const selectedIds = new Set();
+
+function toggleSelection(id) {
+  selectedIds.has(id)
+    ? selectedIds.delete(id)
+    : selectedIds.add(id);
+}
+```
+🔍 왜 배열보다 나을까?
+
+| 비교 항목 | 배열 (Array) | 집합 (Set) |
+| -- | -- | -- |
+| 값 존재 확인 | includes() → O(n) | has() → O(1) |
+| 값 추가/제거 | push(), filter() → O(n) | add(), delete() → O(1) |
+| 중복 방지 | 수동 처리 필요 | 자동 처리됨 |
+
+배열로 상태를 관리하면 매번 전체 순회 + 새 배열 생성이 필요하지만, Set은 한 줄로 빠르고 간결하게 중복 체크가 가능하다.
+
+🔍 객체와 다른 점은 무엇일까?
+
+- Set은 객체의 **내용이 아니라 참조(메모리 주소)** 를 비교한다.
+- 따라서 동일한 구조라도 다른 객체면 다른 값으로 취급된다.
+- 이 문제를 피하려면 product.id처럼 원시값 기반으로 저장해야 한다.
+
+---
+
+### ✅ Map: 객체 전체를 저장할 때 적합
+
+Map은 객체를 포함한 모든 값을 키로 사용할 수 있는 객체이다.
+기본 객체({})와 달리 키 충돌 위험이 없고, 키의 입력 순서를 보장하며, 크기 확인도 직관적이다.
+
+특히 다음과 같은 상황에서 Map이 유리하다:
+- 선택된 항목에 대한 전체 데이터를 함께 저장해야 할 때 (예: 장바구니, 즐겨찾기 목록)
+- 특정 ID에 해당하는 객체를 빠르게 조회해야 할 때
+- 객체를 키로 직접 사용해야 할 때
+
+```javascript
+const product = { id: 1, name: "apple" };
+const selectedItems = new Map();
+selectedItems.set(product.id, product);
+
+// 객체를 키로 사용할 수도 있음
+const keyObj = { name: "apple" };
+selectedItems.set(keyObj, { quantity: 3 });
+
+console.log(selectedItems.get(product.id)); // → {id: 1, name: 'apple'}
+console.log(selectedItems.get(keyObj));     // → {quantity: 3}
+```
+
+기존 Object와 비교했을 때의 차이는 다음과 같다.
+
+| 기능 | Map | Object |
+| -- | -- | -- |
+| 키 타입 | 모든 값 (객체 포함) | 문자열 또는 심볼만 |
+| 키 순서 | 입력 순서 유지 | 보장되지 않음 |
+| 크기 확인 | .size (빠르고 직관적) | Object.keys().length (비효율적) |
+| 키 충돌 위험 | 없음 | 있음 (toString, hasOwnProperty 등 오버라이드 가능성) |
+| 반복/순회 | for...of, spread 가능 | for...in 또는 Object.entries() 필요 |
+
+특히 객체를 키로 사용할 경우, 일반 객체는 내부적으로 문자열로 변환되기 때문에 충돌이 발생할 수 있지만, Map은 객체의 참조를 기준으로 정확히 구분한다.
+
+### ✅ WeakMap: 메모리 누수가 걱정될 때
+
+WeakMap은 키로 객체만 사용 가능하며, 그 객체가 더 이상 참조되지 않으면 해당 데이터도 자동으로 GC(Garbage Collection) 처리된다.
+
+🔍 언제 필요한가?
+
+- DOM 요소나 외부 라이브러리가 만든 객체처럼, 삭제되거나 사라질 수 있는 대상에 정보를 붙여두고 싶을 때 WeakMap을 사용하면 안전하다.
+- 객체가 없어지면 자동으로 그 정보도 함께 정리되기 때문에, 메모리를 직접 신경 쓰지 않아도 된다.
+
+```javascript
+const metadata = new WeakMap();
+
+function bind(domNode, meta) {
+  metadata.set(domNode, meta);
+}
+
+function getStatus(domNode) {
+  return metadata.get(domNode);
+}
+```
+
+DOM 요소가 제거되면 metadata도 자동으로 GC 대상이 되어 메모리 누수 없이 관리 가능하다.
+
+
+🔍 Map 객체는 메모리 누수가 발생할 수 있다.
+
+```javascript
+const cache = new Map();
+let dom = document.getElementById("my-button");
+
+cache.set(dom, { clicked: true });
+dom = null; // 버튼을 삭제해도 cache가 참조 중이라 GC 대상이 아님!
+```
+
+DevTools - Memory 탭에서 Heap Snapshot을 찍고 Map을 필터링해서 보면 메모리 누수가 발생하는 것을 확인할 수 있다.
+
+---
+
+## 🧭 요약
+
+| 상황 | 추천 자료 구조 | 이유 |
+| -- | -- | -- |
+| ID만 저장 | Set | 빠른 조회, 중복 제거 |
+| 객체 자체를 저장 | Map | 확장성, 키로 객체 사용 가능 |
+| DOM 요소 상태 관리 | WeakMap | 자동 메모리 관리 |
+| 순서가 중요할 때 | Array | 순서 보장 (단, 성능 유의) |
+
+---
+
+## ✅ 정리하며
+
+selectedItems를 만들 때 무심코 배열을 쓰는 건 쉬운 선택이지만, 나중에 성능이나 유지보수 문제로 되돌아와 발목을 잡을 수 있다.
+프로젝트가 커질수록, 이런 자그마한 것들이 모여 품질에 문제가 생길 수 있다.
+
+- 단순 ID라면 Set이 적합하다.
+- ID와 객체 데이터를 함께 다룬다면 Map이 더 낫다.
+- DOM 요소나 외부 객체와 상태를 연결해야 한다면 WeakMap을 사용해보자
+
