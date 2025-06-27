@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { cn } from "src/shared/utils";
+import Zoom from 'react-medium-image-zoom'
+import 'react-medium-image-zoom/dist/styles.css'
 
 interface ImageInfo {
   src: string;
@@ -38,7 +40,8 @@ export function ImageGallery({
         {images.map((image, index) => (
           <div key={index} className={cn('"w-full')}>
             <div className="relative aspect-auto max-h-full overflow-hidden">
-              <Image
+              <Zoom>
+                 <Image
                 src={image.src}
                 alt={image.alt || `Image ${index + 1}`}
                 className="rounded-lg w-full h-auto object-contain"
@@ -51,6 +54,7 @@ export function ImageGallery({
                   maxHeight: fullHeight ? "100%" : "400px",
                 }}
               />
+             </Zoom>
             </div>
             {image.alt && (
               <p className="text-sm text-neutral-600 dark:text-neutral-400 pt-2 !m-0">
