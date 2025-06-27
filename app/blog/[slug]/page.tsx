@@ -23,8 +23,11 @@ export default async function Page({
 
   return (
     <section>
-      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6927905151492991"
-     crossOrigin="anonymous"/>
+      <script
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6927905151492991"
+        crossOrigin="anonymous"
+      />
       <script
         type="application/ld+json"
         suppressHydrationWarning
@@ -39,7 +42,9 @@ export default async function Page({
             keywords: post.metadata.tags?.join(", "),
             image: post.metadata.image
               ? `${baseUrl}${post.metadata.image}`
-              : `${baseUrl}/api/og?title=${encodeURIComponent(post.metadata.title)}`,
+              : `${baseUrl}/api/og?title=${encodeURIComponent(
+                  post.metadata.title
+                )}`,
             url: `${baseUrl}/blog/${post.slug}`,
             author: {
               "@type": "Person",
@@ -49,7 +54,7 @@ export default async function Page({
         }}
       />
       <Link href="/blog">
-        <div className="hover:bg-neutral-800/10 dark:hover:bg-neutral-100/20 rounded-full p-2 w-fit mb-2 -ml-2">
+        <div className="back-button hover:bg-neutral-800/10 dark:hover:bg-neutral-100/20 rounded-full p-2 w-fit mb-2 -ml-2">
           <ArrowLeftIcon />
         </div>
       </Link>
@@ -127,7 +132,9 @@ export async function generateMetadata({ params }) {
   } = post.metadata;
   let ogImage = image
     ? image
-    : `${baseUrl}/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description || '')}`;
+    : `${baseUrl}/api/og?title=${encodeURIComponent(
+        title
+      )}&description=${encodeURIComponent(description || "")}`;
 
   return {
     title,

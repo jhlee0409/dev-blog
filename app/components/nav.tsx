@@ -24,13 +24,13 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
   return (
-    <aside className="mb-8 tracking-tight sm:sticky sm:top-4 z-10 -mx-4 rounded-md overflow-hidden">
-      <div className="backdrop-blur-md px-4">
-        <HyperText className="text-3xl">devunpacker</HyperText>
+    <aside className="mb-10 tracking-tight sm:sticky sm:top-6 z-10 -mx-4 rounded-lg overflow-hidden">
+      <div className="backdrop-blur-md px-6 py-2">
+        <HyperText className="text-3xl font-bold">devunpacker</HyperText>
       </div>
       <ScrollProgress />
 
-      <div className="w-full left-0 z-10 fixed bottom-4 sm:bottom-10">
+      <div className="w-full left-0 z-10 fixed bottom-8">
         <Dock
           direction="middle"
           iconMagnification={60}
@@ -48,7 +48,7 @@ export function Navbar() {
               </Link>
             </DockIcon>
           ))}
-          <div className="w-[1px] bg-black h-3/4 dark:bg-white" />
+          <div className="w-[1px] bg-neutral-300 h-3/4 dark:bg-neutral-700 mx-2" />
           {Object.entries(DATA.contact.social).map(([name, social]) => (
             <DockIcon
               key={name}
@@ -68,8 +68,8 @@ export function Navbar() {
           {showScrollTop && (
             <div>
               <DockIcon
-                className="hover:bg-black/10 hover:dark:bg-white/10"
-                onClick={() => window.scrollTo({ top: 0 })}
+                className="hover:bg-black/10 hover:dark:bg-white/10 transition-all duration-200"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               >
                 <ArrowUpIcon />
               </DockIcon>
