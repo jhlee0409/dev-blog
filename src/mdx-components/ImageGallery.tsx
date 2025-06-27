@@ -29,35 +29,35 @@ export function ImageGallery({
   };
 
   return (
-    <div className="w-full flex justify-center py-4">
+    <div className="w-full flex justify-center my-8">
       <div
         className={cn(
-          `w-full max-w-4xl gap-4`,
+          `w-full max-w-4xl gap-6`,
           fullWidth && "w-full",
           getGridCols(images.length)
         )}
       >
         {images.map((image, index) => (
-          <div key={index} className={cn('"w-full')}>
+          <div key={index} className="w-full">
             <div className="relative aspect-auto max-h-full overflow-hidden">
               <Zoom>
-                 <Image
-                src={image.src}
-                alt={image.alt || `Image ${index + 1}`}
-                className="rounded-lg w-full h-auto object-contain"
-                width={0}
-                height={0}
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                style={{
-                  width: "100%",
-                  height: "auto",
-                  maxHeight: fullHeight ? "100%" : "400px",
-                }}
-              />
-             </Zoom>
+                <Image
+                  src={image.src}
+                  alt={image.alt || `Image ${index + 1}`}
+                  className="rounded-xl w-full h-auto object-contain shadow-md transition-all duration-300 hover:shadow-lg"
+                  width={0}
+                  height={0}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  style={{
+                    width: "100%",
+                    height: "auto",
+                    maxHeight: fullHeight ? "100%" : "500px",
+                  }}
+                />
+              </Zoom>
             </div>
             {image.alt && (
-              <p className="text-sm text-neutral-600 dark:text-neutral-400 pt-2 !m-0">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-3 !mb-0 text-center font-medium">
                 {image.alt}
               </p>
             )}
