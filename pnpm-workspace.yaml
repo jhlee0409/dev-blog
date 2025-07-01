@@ -1,2 +1,6 @@
 ignoredBuiltDependencies:
   - protobufjs
+
+packages:
+  - "app"
+  - "src"
