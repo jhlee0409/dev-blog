@@ -41,3 +41,6 @@ CLAUDE.md
 
 # Google Service Account Key
 my-dev-blog-secret-key.json
+
+.env.local
+.env*.local

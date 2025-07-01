@@ -1,15 +1,47 @@
-// lib/analytics.ts
-
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
 
-const analyticsDataClient = new BetaAnalyticsDataClient({
-  keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-});
+let serviceAccount: any = {};
+try {
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    let jsonString = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+
+    // private_key 내의 실제 줄바꿈을 보존하면서 JSON 파싱
+    // 정규식으로 private_key 필드를 찾아서 내부의 줄바꿈을 이스케이프
+    const privateKeyRegex = /("private_key"\s*:\s*")([\s\S]*?)(")/g;
+    jsonString = jsonString.replace(privateKeyRegex, (match, p1, p2, p3) => {
+      // private_key 내부의 실제 줄바꿈을 \n으로 변환
+      const escapedKey = p2.replace(/\n/g, '\\n');
+      return p1 + escapedKey + p3;
+    });
+
+    serviceAccount = JSON.parse(jsonString);
+  }
+} catch (error) {
+  console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:", error);
+  console.error(
+    "JSON string preview:",
+    process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.substring(0, 200)
+  );
+  serviceAccount = {};
+}
+
+const analyticsDataClient =
+  serviceAccount.client_email && serviceAccount.private_key
+    ? new BetaAnalyticsDataClient({
+        credentials: {
+          client_email: serviceAccount.client_email,
+          private_key: serviceAccount.private_key.replace(/\\n/g, "\n"),
+        },
+      })
+    : null;
 
 const propertyId = process.env.NEXT_PUBLIC_GA_ID;
 
-// ✅ [수정] 특정 기간의 방문자 수를 가져오는 단일 함수
 async function getReport(startDate: string, endDate: string) {
+  if (!analyticsDataClient) {
+    return "0";
+  }
+
   const [response] = await analyticsDataClient.runReport({
     property: `properties/${propertyId}`,
     dateRanges: [{ startDate, endDate }],
