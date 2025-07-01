@@ -27,19 +27,59 @@ export function TableOfContents({
     const article = document.querySelector("article.prose");
     if (!article) return;
 
-    const headings = article.querySelectorAll(
-      "h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]"
-    );
+    const headings = article.querySelectorAll("h1, h2, h3, h4, h5, h6");
+
+    const usedIds = new Set<string>();
     const items: TocItem[] = Array.from(headings)
-      .map((heading) => {
-        const text = heading.textContent?.replace("#", "").trim() || "";
+      .map((heading, index) => {
+        // 텍스트 추출 시 더 안전한 방법 사용
+        let text = "";
+        if (heading.textContent) {
+          text = heading.textContent.replace(/#/g, "").trim();
+        } else if (heading.textContent) {
+          text = heading.textContent.replace(/#/g, "").trim();
+        } else {
+          console.warn("Invalid heading text detected:", heading, text);
+          return null;
+        }
+
+        // 빈 텍스트나 잘못된 텍스트 필터링
+        if (!text || text === "[object Object]" || text.includes("object")) {
+          console.warn("Invalid heading text detected:", heading, text);
+          return null;
+        }
+
+        // ID가 없거나 중복되는 경우 새로운 고유 ID 생성
+        let id = heading.id;
+        if (!id || id === "object-object" || usedIds.has(id)) {
+          // 텍스트를 기반으로 slug 생성
+          const baseSlug = text
+            .toLowerCase()
+            .replace(/[^a-z0-9가-힣\s]/g, "") // 특수문자 제거하되 공백은 유지
+            .replace(/\s+/g, "-") // 공백을 하이픈으로
+            .replace(/-+/g, "-") // 연속 하이픈 정리
+            .replace(/^-|-$/g, ""); // 앞뒤 하이픈 제거
+
+          id = baseSlug || `heading-${index}`; // baseSlug가 비어있으면 fallback
+          let counter = 1;
+          while (usedIds.has(id)) {
+            id = `${baseSlug || `heading-${index}`}-${counter}`;
+            counter++;
+          }
+
+          // 실제 DOM 요소에도 새로운 ID 설정
+          heading.id = id;
+        }
+
+        usedIds.add(id);
+
         return {
-          id: heading.id,
+          id,
           text,
           level: parseInt(heading.tagName[1]),
         };
       })
-      .filter((item) => item.text && item.id); // 텍스트와 ID가 모두 있는 것만 포함
+      .filter((item): item is TocItem => item !== null);
 
     setTocItems(items);
 
@@ -79,7 +119,6 @@ export function TableOfContents({
       });
     }
   };
-
   if (tocItems.length === 0) {
     return null;
   }
