@@ -84,31 +84,26 @@ html {
 }
 
 .prose .anchor {
-  @apply absolute invisible no-underline;
-
-  margin-left: -1em;
-  padding-right: 0.5em;
-  width: 80%;
-  max-width: 700px;
-  cursor: pointer;
+  @apply no-underline text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 transition-opacity;
+  text-decoration: none !important;
 }
 
-.anchor:hover {
-  @apply visible;
+.prose .anchor::after {
+  content: none !important;
 }
 
-.prose a {
+.prose a:not(.anchor) {
   @apply no-underline transition-all;
   position: relative;
   color: #0066cc;
   font-weight: 500;
 }
 
-.dark .prose a {
+.dark .prose a:not(.anchor) {
   color: #4493f8;
 }
 
-.prose a::after:not(.back-button) {
+.prose a:not(.anchor)::after {
   content: "";
   position: absolute;
   width: 100%;
@@ -120,17 +115,23 @@ html {
   transition: opacity var(--transition-fast) var(--ease-out);
 }
 
-.prose a:hover::after {
+.prose a:not(.anchor):hover::after {
   opacity: 0.6;
 }
 
-.prose .anchor:after {
-  @apply text-neutral-300 dark:text-neutral-700;
-  content: "#";
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
 }
 
-.prose *:hover > .anchor {
-  @apply visible;
+/* Offset for anchor links */
+.prose h1[id],
+.prose h2[id],
+.prose h3[id],
+.prose h4[id],
+.prose h5[id],
+.prose h6[id] {
+  scroll-margin-top: 100px;
 }
 
 .prose code span {
