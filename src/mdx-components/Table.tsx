@@ -2,8 +2,8 @@ import { cn } from "src/shared/utils";
 
 function OriginalTable(props: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="my-8 overflow-x-auto w-full max-w-full rounded-xl border border-neutral-200 shadow-md dark:border-neutral-700">
-      <table {...props} className={cn("min-w-full", props.className)} />
+    <div className="my-8 overflow-x-auto max-w-full w-fit rounded-xl border border-neutral-200 shadow-md dark:border-neutral-700">
+      <table {...props} className={cn(props.className)} />
     </div>
   );
 }
