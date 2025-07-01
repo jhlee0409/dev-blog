@@ -38,3 +38,6 @@ next-env.d.ts
 
 
 CLAUDE.md
+
+# Google Service Account Key
+my-dev-blog-secret-key.json

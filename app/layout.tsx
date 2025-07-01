@@ -8,6 +8,7 @@ import Footer from "./components/footer";
 import { baseUrl } from "./sitemap";
 import { ThemeProvider } from "next-themes";
 import Script from "next/script";
+import AnalyticsStatus from "@/src/components/AnalyticsStatus";
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
@@ -15,8 +16,22 @@ export const metadata: Metadata = {
     default: "Devunpacker - 개발자를 위한 기술 블로그",
     template: "%s | Devunpacker",
   },
-  description: "웹 개발, 프론트엔드, 백엔드, DevOps 등 다양한 개발 기술과 경험을 공유하는 기술 블로그입니다. React, Next.js, TypeScript, Node.js 등의 최신 기술 스택과 실무 경험을 다룹니다.",
-  keywords: ["개발 블로그", "기술 블로그", "웹 개발", "프론트엔드", "백엔드", "React", "Next.js", "TypeScript", "JavaScript", "Node.js", "DevOps", "프로그래밍"],
+  description:
+    "웹 개발, 프론트엔드, 백엔드, DevOps 등 다양한 개발 기술과 경험을 공유하는 기술 블로그입니다. React, Next.js, TypeScript, Node.js 등의 최신 기술 스택과 실무 경험을 다룹니다.",
+  keywords: [
+    "개발 블로그",
+    "기술 블로그",
+    "웹 개발",
+    "프론트엔드",
+    "백엔드",
+    "React",
+    "Next.js",
+    "TypeScript",
+    "JavaScript",
+    "Node.js",
+    "DevOps",
+    "프로그래밍",
+  ],
   authors: [{ name: "Devunpacker" }],
   creator: "Devunpacker",
   publisher: "Devunpacker",
@@ -27,7 +42,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Devunpacker - 개발자를 위한 기술 블로그",
-    description: "웹 개발, 프론트엔드, 백엔드, DevOps 등 다양한 개발 기술과 경험을 공유하는 기술 블로그입니다.",
+    description:
+      "웹 개발, 프론트엔드, 백엔드, DevOps 등 다양한 개발 기술과 경험을 공유하는 기술 블로그입니다.",
     url: baseUrl,
     siteName: "Devunpacker",
     images: [
@@ -44,7 +60,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Devunpacker - 개발자를 위한 기술 블로그",
-    description: "웹 개발, 프론트엔드, 백엔드, DevOps 등 다양한 개발 기술과 경험을 공유하는 기술 블로그입니다.",
+    description:
+      "웹 개발, 프론트엔드, 백엔드, DevOps 등 다양한 개발 기술과 경험을 공유하는 기술 블로그입니다.",
     images: ["/api/og?title=Devunpacker&description=개발자를 위한 기술 블로그"],
   },
   robots: {
@@ -76,23 +93,24 @@ const cx = (...classes: string[]) => classes.filter(Boolean).join(" ");
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "name": "Devunpacker",
-  "alternateName": "Devunpacker 기술 블로그",
-  "url": baseUrl,
-  "description": "웹 개발, 프론트엔드, 백엔드, DevOps 등 다양한 개발 기술과 경험을 공유하는 기술 블로그",
-  "publisher": {
+  name: "Devunpacker",
+  alternateName: "Devunpacker 기술 블로그",
+  url: baseUrl,
+  description:
+    "웹 개발, 프론트엔드, 백엔드, DevOps 등 다양한 개발 기술과 경험을 공유하는 기술 블로그",
+  publisher: {
     "@type": "Person",
-    "name": "Devunpacker"
+    name: "Devunpacker",
   },
-  "inLanguage": "ko-KR",
-  "potentialAction": {
+  inLanguage: "ko-KR",
+  potentialAction: {
     "@type": "SearchAction",
-    "target": {
+    target: {
       "@type": "EntryPoint",
-      "urlTemplate": `${baseUrl}/search?q={search_term_string}`
+      urlTemplate: `${baseUrl}/search?q={search_term_string}`,
     },
-    "query-input": "required name=search_term_string"
-  }
+    "query-input": "required name=search_term_string",
+  },
 };
 
 export default function RootLayout({
@@ -108,18 +126,21 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-      <Script
-        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6927905151492991"
-        strategy="beforeInteractive"
-        crossOrigin="anonymous"
+        <Script
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6927905151492991"
+          strategy="beforeInteractive"
+          crossOrigin="anonymous"
         />
-        </head>
+      </head>
 
       <body className={cx("antialiased min-h-screen")}>
         <ThemeProvider attribute="class">
           <div className="max-w-4xl mb-40 flex flex-col md:flex-row mx-4 mt-8 lg:mx-auto">
-            <main className="flex-auto min-w-0 mt-6 flex flex-col px-2 md:px-0">
+            <main className="relative flex-auto min-w-0 mt-6 flex flex-col px-2 md:px-0">
               <Navbar />
+              <div className="absolute z-20 right-0 top-0">
+                <AnalyticsStatus />
+              </div>
               {children}
               <Analytics />
               <SpeedInsights />
