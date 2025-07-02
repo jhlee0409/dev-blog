@@ -126,12 +126,12 @@ export function TableOfContents({
   return (
     <nav
       className={cn(
-        "p-3 border border-neutral-200 dark:border-neutral-800 rounded-md flex flex-col",
+        "border border-neutral-200 dark:border-neutral-800 rounded-md flex flex-col",
         className
       )}
     >
       <div
-        className={cn("flex items-center justify-between", {
+        className={cn("flex items-center justify-between p-3", {
           "cursor-pointer": collapsible,
         })}
         onClick={() => collapsible && setIsExpanded(!isExpanded)}
@@ -155,20 +155,21 @@ export function TableOfContents({
 
       <div
         className={cn(
-          "transition-all duration-300 ease-in-out overflow-hidden",
+          "transition-all duration-300 ease-in-out overflow-hidden px-1",
           {
             "max-h-0 opacity-0": !isExpanded,
-            "max-h-screen opacity-100": isExpanded,
+            "max-h-[50dvh] overflow-y-auto opacity-100": isExpanded,
           }
         )}
       >
         <ul className="!list-none space-y-0.5 mt-2 !p-0">
           {tocItems.map((item, index) => (
-            <li key={`${item.id}-${index}`} className="!m-0 cursor-pointer">
+            // 한줄처리
+            <li key={`${item.id}-${index}`} className="!m-0">
               <button
                 onClick={() => handleClick(item.id)}
                 className={cn(
-                  "text-left w-full py-1.5 px-2 rounded transition-all duration-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs leading-relaxed flex items-center gap-1",
+                  "cursor-pointer text-left w-full truncate py-1.5 px-2 rounded transition-all duration-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs leading-relaxed",
                   {
                     "text-neutral-900 dark:text-neutral-100 bg-neutral-100 dark:bg-neutral-800 font-medium":
                       activeId === item.id,
