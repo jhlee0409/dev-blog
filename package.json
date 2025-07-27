@@ -16,6 +16,7 @@
     "@types/node": "20.11.17",
     "@types/react": "19.0.0",
     "@types/react-dom": "19.0.0",
+    "@upstash/redis": "^1.35.1",
     "@vercel/analytics": "^1.4.1",
     "@vercel/speed-insights": "^1.1.0",
     "class-variance-authority": "^0.7.1",

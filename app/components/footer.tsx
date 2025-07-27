@@ -1,3 +1,5 @@
+import VisitorCounter from "@/src/shared/ui/VisitorCounter";
+
 function ArrowIcon() {
   return (
     <svg
@@ -33,7 +35,13 @@ export default function Footer() {
           </a>
         </li>
       </ul>
-      <p className="mt-8 text-sm text-neutral-500 dark:text-neutral-400">
+      
+      {/* 방문자 수 표시 */}
+      <div className="mt-6 pt-4 border-t border-neutral-100 dark:border-neutral-700">
+        <VisitorCounter variant="compact" className="justify-center" />
+      </div>
+      
+      <p className="mt-6 text-sm text-neutral-500 dark:text-neutral-400">
         © {new Date().getFullYear()} MIT Licensed
       </p>
     </footer>
