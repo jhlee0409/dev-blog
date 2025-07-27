@@ -3,30 +3,51 @@ import { safeDestr } from "destr";
 
 let serviceAccount: any = {};
 if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-  // destr로 안전하게 JSON 파싱 (에러 발생 시 기본값 반환)
-  serviceAccount = safeDestr(process.env.GOOGLE_SERVICE_ACCOUNT_JSON, {});
-  
-  if (!serviceAccount.client_email || !serviceAccount.private_key) {
-    console.error("Invalid service account JSON: missing required fields");
+  try {
+    // destr로 안전하게 JSON 파싱
+    const parsed = safeDestr(process.env.GOOGLE_SERVICE_ACCOUNT_JSON, {});
+    
+    if (parsed && typeof parsed === 'object' && (parsed as any).client_email && (parsed as any).private_key) {
+      serviceAccount = parsed;
+    } else {
+      console.error("Invalid service account JSON: missing required fields or failed to parse");
+      serviceAccount = {};
+    }
+  } catch (error) {
+    console.error("Failed to parse service account JSON:", error);
     serviceAccount = {};
   }
 } else {
-  console.warn("GOOGLE_SERVICE_ACCOUNT_JSON environment variable not found");
+  // 빌드 시간에는 경고를 출력하지 않음
+  if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production') {
+    console.warn("GOOGLE_SERVICE_ACCOUNT_JSON environment variable not found");
+  }
 }
 
-const analyticsDataClient =
-  serviceAccount.client_email && serviceAccount.private_key
-    ? new BetaAnalyticsDataClient({
-        credentials: {
-          client_email: serviceAccount.client_email,
-          private_key: serviceAccount.private_key,
-        },
-      })
-    : null;
+// Analytics 클라이언트를 다이내믹하게 생성
+function createAnalyticsClient() {
+  if (!serviceAccount.client_email || !serviceAccount.private_key) {
+    return null;
+  }
+  
+  try {
+    return new BetaAnalyticsDataClient({
+      credentials: {
+        client_email: serviceAccount.client_email,
+        private_key: serviceAccount.private_key,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to create analytics client:", error);
+    return null;
+  }
+}
 
 const propertyId = process.env.NEXT_PUBLIC_GA_ID;
 
 async function getReport(startDate: string, endDate: string) {
+  const analyticsDataClient = createAnalyticsClient();
+  
   if (!analyticsDataClient) {
     console.warn("Analytics client not initialized - check GOOGLE_SERVICE_ACCOUNT_JSON env var");
     return "0";
@@ -45,7 +66,6 @@ async function getReport(startDate: string, endDate: string) {
     });
 
     const value = response.rows?.[0]?.metricValues?.[0]?.value || "0";
-    
 
     return value;
   } catch (error: any) {
