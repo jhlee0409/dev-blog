@@ -75,13 +75,19 @@ export async function getVisitorData() {
   }
 
   try {
-    // 한국 시간대 기준으로 날짜 계산
-    const kstNow = new Date(now + 9 * 60 * 60 * 1000); // UTC+9
-    const todayKST = new Date(kstNow);
-    todayKST.setUTCHours(0, 0, 0, 0);
+    // 한국 시간대 기준으로 날짜 계산 (더 안정적인 방법)
+    const currentDate = new Date();
+    const kstOffset = 9 * 60; // KST는 UTC+9
+    const utc = currentDate.getTime() + currentDate.getTimezoneOffset() * 60000;
+    const kstTime = new Date(utc + kstOffset * 60000);
 
+    const todayKST = new Date(
+      kstTime.getFullYear(),
+      kstTime.getMonth(),
+      kstTime.getDate()
+    );
     const yesterdayKST = new Date(todayKST);
-    yesterdayKST.setUTCDate(yesterdayKST.getUTCDate() - 1);
+    yesterdayKST.setDate(yesterdayKST.getDate() - 1);
 
     const todayStr = formatDate(todayKST);
     const yesterdayStr = formatDate(yesterdayKST);
