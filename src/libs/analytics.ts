@@ -1,28 +1,17 @@
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
+import { safeDestr } from "destr";
 
 let serviceAccount: any = {};
-try {
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-    let jsonString = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-
-    // private_key 내의 실제 줄바꿈을 보존하면서 JSON 파싱
-    // 정규식으로 private_key 필드를 찾아서 내부의 줄바꿈을 이스케이프
-    const privateKeyRegex = /("private_key"\s*:\s*")([\s\S]*?)(")/g;
-    jsonString = jsonString.replace(privateKeyRegex, (match, p1, p2, p3) => {
-      // private_key 내부의 실제 줄바꿈을 \n으로 변환
-      const escapedKey = p2.replace(/\n/g, "\\n");
-      return p1 + escapedKey + p3;
-    });
-
-    serviceAccount = JSON.parse(jsonString);
+if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+  // destr로 안전하게 JSON 파싱 (에러 발생 시 기본값 반환)
+  serviceAccount = safeDestr(process.env.GOOGLE_SERVICE_ACCOUNT_JSON, {});
+  
+  if (!serviceAccount.client_email || !serviceAccount.private_key) {
+    console.error("Invalid service account JSON: missing required fields");
+    serviceAccount = {};
   }
-} catch (error) {
-  console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:", error);
-  console.error(
-    "JSON string preview:",
-    process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.substring(0, 200)
-  );
-  serviceAccount = {};
+} else {
+  console.warn("GOOGLE_SERVICE_ACCOUNT_JSON environment variable not found");
 }
 
 const analyticsDataClient =
@@ -30,7 +19,7 @@ const analyticsDataClient =
     ? new BetaAnalyticsDataClient({
         credentials: {
           client_email: serviceAccount.client_email,
-          private_key: serviceAccount.private_key.replace(/\\n/g, "\n"),
+          private_key: serviceAccount.private_key,
         },
       })
     : null;
@@ -39,18 +28,33 @@ const propertyId = process.env.NEXT_PUBLIC_GA_ID;
 
 async function getReport(startDate: string, endDate: string) {
   if (!analyticsDataClient) {
+    console.warn("Analytics client not initialized - check GOOGLE_SERVICE_ACCOUNT_JSON env var");
+    return "0";
+  }
+  
+  if (!propertyId) {
+    console.warn("GA Property ID not found - check NEXT_PUBLIC_GA_ID env var");
     return "0";
   }
 
-  const [response] = await analyticsDataClient.runReport({
-    property: `properties/${propertyId}`,
-    dateRanges: [{ startDate, endDate }],
-    metrics: [{ name: "activeUsers" }],
-  });
+  try {
+    const [response] = await analyticsDataClient.runReport({
+      property: `properties/${propertyId}`,
+      dateRanges: [{ startDate, endDate }],
+      metrics: [{ name: "activeUsers" }],
+    });
 
-  const value = response.rows?.[0]?.metricValues?.[0]?.value || "0";
+    const value = response.rows?.[0]?.metricValues?.[0]?.value || "0";
+    
 
-  return value;
+    return value;
+  } catch (error: any) {
+    console.error("GA runReport error:", error.message);
+    if (error.details) {
+      console.error("Error details:", error.details);
+    }
+    return "0";
+  }
 }
 
 // 캐시를 위한 변수
@@ -105,6 +109,10 @@ export async function getVisitorData() {
     return cachedData;
   } catch (error) {
     console.error("GA Data API Error:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
     // 오류가 발생했을 때 반환할 값
     return { today: "N/A", yesterday: "N/A", total: "N/A" };
   }
